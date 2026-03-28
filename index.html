@@ -2292,9 +2292,10 @@
     </div>
   </div>
 
+  <script src="/script.js"></script>
   <script>
     const TOKEN_KEY = "blade_token";
-    const API_TURN = "/api/turn";
+    const API_TURN_STREAM = "/api/turn_stream";
     const API_ME = "/api/me";
     const API_LOGIN = "/api/login";
     const API_REGISTER = "/api/register";
@@ -4417,58 +4418,55 @@
       setLoading(true);
       setCausalSettlementVisible(true);
       try {
-        const res = await fetch(API_TURN, {
+        const res = await fetch(API_TURN_STREAM, {
           method: "POST",
-          headers: authHeaders(true),
+          headers: { ...authHeaders(true), Accept: "text/event-stream" },
           body: JSON.stringify({ choice: String(choice) }),
         });
-        const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
           localStorage.removeItem(TOKEN_KEY);
           showAuth();
           throw new Error("登入已失效，請重新登入");
         }
         if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
           const d = data.detail;
           const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || res.statusText);
           throw new Error(msg || "請求失敗");
         }
-        if (data.game_state) {
-          applyGameState(data.game_state, { animateLastAssistant: true });
-        } else {
-          const rawN = data.narrative != null ? String(data.narrative) : "";
-          const pr = tryParseAiJsonPayload(rawN);
-          if (pr.ok && pr.value) mergeParsedIntoCurrentGameState(pr.value);
-          else if (data.stats) stats = normalizeStatsFromServer({ ...stats, ...data.stats });
-          setBars();
-          if (rawN && storyScrollEl) {
-            detachStoryTypewriterSkip();
-            storyScrollEl.classList.remove("story-scroll--tw-skip");
-            storyTypewriterGeneration++;
-            const bundle = parseAssistantDisplayBundle(rawN);
-            const { body, choices } = storyChoicesFromBundle(bundle);
-            storyScrollEl.innerHTML = "";
-            if (storyChoicesEl) {
-              storyChoicesEl.innerHTML = "";
-              storyChoicesEl.classList.remove("story-choices--await-reveal", "story-choices--fade-reveal");
-            }
-            const seg = document.createElement("div");
-            seg.className = "story-segment";
-            const bodyDiv = document.createElement("div");
-            bodyDiv.className = "story-segment-body";
-            const showBody = choices.length > 0 ? body : (body || bundle.narrative);
-            seg.appendChild(bodyDiv);
-            storyScrollEl.appendChild(seg);
-            if (String(showBody || "").trim()) {
-              runStoryTypewriter(bodyDiv, showBody, choices);
-            } else {
-              bodyDiv.classList.add("story-segment-body--rich");
-              appendChoicePreviewBlock(seg, choices);
-              if (storyChoicesEl) revealStoryChoicesFadeIn(choices);
-              scheduleStoryScrollLockToEnd();
-            }
-          }
+        if (!res.body || typeof res.body.getReader !== "function") {
+          throw new Error("此瀏覽器不支援串流回應");
         }
+        if (typeof window.consumeBladeTurnSse !== "function") {
+          throw new Error("缺少 script.js（consumeBladeTurnSse）");
+        }
+        const reader = res.body.getReader();
+        let liveBodyDiv = null;
+        let liveText = "";
+        if (storyScrollEl) {
+          detachStoryTypewriterSkip();
+          storyScrollEl.classList.remove("story-scroll--tw-skip");
+          storyTypewriterGeneration++;
+          storyScrollEl.innerHTML = "";
+          if (storyChoicesEl) {
+            storyChoicesEl.innerHTML = "";
+            storyChoicesEl.classList.remove("story-choices--await-reveal", "story-choices--fade-reveal");
+          }
+          const seg = document.createElement("div");
+          seg.className = "story-segment";
+          liveBodyDiv = document.createElement("div");
+          liveBodyDiv.className = "story-segment-body story-segment-body--rich";
+          seg.appendChild(liveBodyDiv);
+          storyScrollEl.appendChild(seg);
+        }
+        const finalPayload = await window.consumeBladeTurnSse(reader, (delta) => {
+          liveText += delta;
+          if (liveBodyDiv) {
+            liveBodyDiv.textContent = liveText;
+            scheduleStoryScrollLockToEnd();
+          }
+        });
+        applyGameState(finalPayload.game_state, { animateLastAssistant: false });
         if (clearCustomOnSuccess) customInput.value = "";
       } catch (e) {
         errEl.textContent = String(e.message || e);

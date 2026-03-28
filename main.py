@@ -18,7 +18,7 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 load_dotenv()
@@ -2677,6 +2677,207 @@ async def _call_poe(messages: list[dict[str, str]], temperature: float = 0.82) -
     return str(content).strip()
 
 
+def _partial_narrative_for_stream_preview(buffer: str) -> str:
+    """從仍可能不完整的 JSON 輸出中抽出 narrative 字串，供 SSE 即時顯示。"""
+    if not buffer:
+        return ""
+    s = buffer
+    key = '"narrative"'
+    i = s.find(key)
+    if i < 0:
+        t = s.lstrip()
+        if t and not t.startswith("{"):
+            return s.rstrip()
+        return ""
+    j = i + len(key)
+    while j < len(s) and s[j] in " \t\r\n":
+        j += 1
+    if j >= len(s) or s[j] != ":":
+        return ""
+    j += 1
+    while j < len(s) and s[j] in " \t\r\n":
+        j += 1
+    if j >= len(s) or s[j] != '"':
+        return ""
+    j += 1
+    out: list[str] = []
+    while j < len(s):
+        c = s[j]
+        if c == "\\":
+            if j + 1 >= len(s):
+                break
+            esc = s[j + 1]
+            if esc == "n":
+                out.append("\n")
+            elif esc == "r":
+                out.append("\r")
+            elif esc == "t":
+                out.append("\t")
+            elif esc in '"\\/':
+                out.append(esc)
+            elif esc == "u" and j + 5 < len(s):
+                hex_part = s[j + 2 : j + 6]
+                try:
+                    out.append(chr(int(hex_part, 16)))
+                except ValueError:
+                    out.append(esc)
+                j += 6
+                continue
+            else:
+                out.append(esc)
+            j += 2
+            continue
+        if c == '"':
+            break
+        out.append(c)
+        j += 1
+    return "".join(out)
+
+
+async def _call_poe_stream(
+    messages: list[dict[str, str]], temperature: float = 0.82
+):
+    """OpenAI 相容 SSE：逐段 yield 模型輸出字串片段。"""
+    api_key = os.getenv("POE_API_KEY", "").strip()
+    if not api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="缺少 POE_API_KEY：請複製 .env.example 為 .env 並填入金鑰。",
+        )
+    model = os.getenv("POE_MODEL", "GPT-4o").strip() or "GPT-4o"
+    payload = {
+        "model": model,
+        "messages": messages,
+        "temperature": temperature,
+        "stream": True,
+        "max_tokens": _poe_max_tokens(),
+    }
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            async with client.stream(
+                "POST",
+                POE_API_URL,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            ) as r:
+                if r.status_code >= 400:
+                    body = (await r.aread()).decode("utf-8", errors="replace")
+                    try:
+                        err_j = json.loads(body)
+                        detail = err_j.get("message") or err_j.get("error") or body
+                    except json.JSONDecodeError:
+                        detail = body or r.reason_phrase
+                    raise HTTPException(
+                        status_code=r.status_code, detail=str(detail)[:2000]
+                    )
+                async for line in r.aiter_lines():
+                    line = line.strip()
+                    if not line or line.startswith(":"):
+                        continue
+                    if not line.startswith("data: "):
+                        continue
+                    data = line[6:].strip()
+                    if data == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data)
+                    except json.JSONDecodeError:
+                        continue
+                    for ch in chunk.get("choices") or []:
+                        delta = ch.get("delta") or {}
+                        piece = delta.get("content")
+                        if piece:
+                            yield piece
+    except HTTPException:
+        raise
+    except httpx.RequestError as e:
+        raise HTTPException(status_code=502, detail=f"Poe 連線失敗：{e!s}") from e
+
+
+def _turn_prepare_messages(
+    body: TurnBody, auth: tuple[int, str, str, dict[str, Any]]
+) -> tuple[int, dict[str, Any], list[dict[str, str]], str, str]:
+    user_id, _username, player_name, game_state = auth
+    _ensure_game_state_shape(game_state)
+    bump_quest_action_tick(game_state)
+
+    sys_ctx = system_prompt_with_session_context(game_state)
+    _cmb = custom_martial_bonus_system_block(game_state, body.choice.strip())
+    if _cmb:
+        sys_ctx += "\n\n" + _cmb
+    msgs: list[dict[str, str]] = [
+        {"role": "system", "content": sys_ctx},
+    ]
+    for m in game_state["messages"]:
+        role = m.get("role", "")
+        content = (m.get("content") or "").strip()
+        if role not in ("user", "assistant") or not content:
+            continue
+        msgs.append({"role": role, "content": content})
+    choice_line = f"【道號｜{player_name}】{body.choice.strip()}"
+    user_content = f"【玩家行動】{choice_line}"
+    msgs.append({"role": "user", "content": user_content})
+    choice_stripped = body.choice.strip()
+    return user_id, game_state, msgs, user_content, choice_stripped
+
+
+async def _finalize_turn_from_model_raw(
+    user_id: int,
+    raw: str,
+    game_state: dict[str, Any],
+    user_content: str,
+    choice_stripped: str,
+) -> dict[str, Any]:
+    prev_stats = dict(game_state["stats"])
+    try:
+        parsed = _extract_json_object(raw)
+    except ValueError:
+        parsed = {"narrative": raw}
+
+    narrative = parsed.get("narrative")
+    if not isinstance(narrative, str) or not narrative.strip():
+        narrative = raw
+
+    narrative_raw = str(narrative).strip()
+    clean_nar, stats = _merge_narrative_attrs_into_stats(
+        narrative_raw, parsed, prev_stats
+    )
+    raw_stored = _rewrite_assistant_raw_with_clean_narrative(raw, clean_nar)
+
+    game_state["messages"].append({"role": "user", "content": user_content})
+    game_state["messages"].append({"role": "assistant", "content": raw_stored})
+    if len(game_state["messages"]) > 48:
+        game_state["messages"] = game_state["messages"][-48:]
+    game_state["stats"] = stats
+    game_state["last_narrative"] = clean_nar
+    _merge_optional_collections(game_state, parsed)
+    game_state["inventory"] = parse_loot_from_narrative(
+        clean_nar, game_state["inventory"]
+    )
+    game_state["skills"] = parse_skill_learn_from_narrative(
+        clean_nar, game_state["skills"]
+    )
+    apply_turn_choice_consumption(game_state, choice_stripped)
+    apply_derived_rank_from_skills(game_state)
+    apply_energy_max_from_skill_weights(game_state)
+    clamp_and_sync_energy(game_state)
+
+    await maybe_evolve_shelved_quests(game_state, force=False)
+
+    with get_db() as conn:
+        save_user_game_state(conn, user_id, game_state)
+
+    return {
+        "narrative": clean_nar,
+        "stats": stats,
+        "assistant_raw": raw_stored,
+        "game_state": game_state,
+    }
+
+
 async def build_fresh_opening_state(
     player_name: str, past_life_echo: dict[str, Any] | None = None
 ) -> dict[str, Any]:
@@ -2760,6 +2961,14 @@ async def manifest() -> FileResponse:
     return FileResponse(
         os.path.join(BASE_DIR, "manifest.json"),
         media_type="application/manifest+json",
+    )
+
+
+@app.get("/script.js")
+async def script_js() -> FileResponse:
+    return FileResponse(
+        os.path.join(BASE_DIR, "script.js"),
+        media_type="application/javascript; charset=utf-8",
     )
 
 
@@ -3275,74 +3484,78 @@ async def quest_track(body: QuestTrackBody, auth: AuthUser) -> dict[str, Any]:
 
 @app.post("/api/turn")
 async def turn(body: TurnBody, auth: AuthUser) -> dict[str, Any]:
-    user_id, _username, player_name, game_state = auth
-    _ensure_game_state_shape(game_state)
-    bump_quest_action_tick(game_state)
-
-    sys_ctx = system_prompt_with_session_context(game_state)
-    _cmb = custom_martial_bonus_system_block(game_state, body.choice.strip())
-    if _cmb:
-        sys_ctx += "\n\n" + _cmb
-    msgs: list[dict[str, str]] = [
-        {"role": "system", "content": sys_ctx},
-    ]
-    for m in game_state["messages"]:
-        role = m.get("role", "")
-        content = (m.get("content") or "").strip()
-        if role not in ("user", "assistant") or not content:
-            continue
-        msgs.append({"role": role, "content": content})
-    choice_line = f"【道號｜{player_name}】{body.choice.strip()}"
-    user_content = f"【玩家行動】{choice_line}"
-    msgs.append({"role": "user", "content": user_content})
-
+    user_id, game_state, msgs, user_content, choice_stripped = _turn_prepare_messages(
+        body, auth
+    )
     raw = await _call_poe(msgs)
-
-    prev_stats = dict(game_state["stats"])
-    try:
-        parsed = _extract_json_object(raw)
-    except ValueError:
-        parsed = {"narrative": raw}
-
-    narrative = parsed.get("narrative")
-    if not isinstance(narrative, str) or not narrative.strip():
-        narrative = raw
-
-    narrative_raw = str(narrative).strip()
-    clean_nar, stats = _merge_narrative_attrs_into_stats(
-        narrative_raw, parsed, prev_stats
+    return await _finalize_turn_from_model_raw(
+        user_id, raw, game_state, user_content, choice_stripped
     )
-    raw_stored = _rewrite_assistant_raw_with_clean_narrative(raw, clean_nar)
 
-    game_state["messages"].append({"role": "user", "content": user_content})
-    game_state["messages"].append({"role": "assistant", "content": raw_stored})
-    if len(game_state["messages"]) > 48:
-        game_state["messages"] = game_state["messages"][-48:]
-    game_state["stats"] = stats
-    game_state["last_narrative"] = clean_nar
-    _merge_optional_collections(game_state, parsed)
-    game_state["inventory"] = parse_loot_from_narrative(
-        clean_nar, game_state["inventory"]
+
+def _sse_error_payload(exc: HTTPException) -> str:
+    d = exc.detail
+    if isinstance(d, list):
+        d = " ".join(
+            str(x.get("msg", x)) if isinstance(x, dict) else str(x) for x in d
+        )
+    return json.dumps({"error": str(d)}, ensure_ascii=False)
+
+
+@app.post("/api/turn_stream")
+async def turn_stream(body: TurnBody, auth: AuthUser) -> StreamingResponse:
+    user_id, game_state, msgs, user_content, choice_stripped = _turn_prepare_messages(
+        body, auth
     )
-    game_state["skills"] = parse_skill_learn_from_narrative(
-        clean_nar, game_state["skills"]
+
+    async def event_gen():
+        acc: list[str] = []
+        last_preview = ""
+        try:
+            async for piece in _call_poe_stream(msgs):
+                acc.append(piece)
+                full = "".join(acc)
+                preview = _partial_narrative_for_stream_preview(full)
+                if preview.startswith(last_preview):
+                    delta = preview[len(last_preview) :]
+                else:
+                    delta = preview
+                last_preview = preview
+                if delta:
+                    yield (
+                        "data: "
+                        + json.dumps(
+                            {"narrative_delta": delta}, ensure_ascii=False
+                        )
+                        + "\n\n"
+                    )
+            raw = "".join(acc).strip()
+            if not raw:
+                yield "data: " + json.dumps({"error": "模型未回傳內容"}) + "\n\n"
+                return
+            result = await _finalize_turn_from_model_raw(
+                user_id, raw, game_state, user_content, choice_stripped
+            )
+            result["done"] = True
+            yield "data: " + json.dumps(result, ensure_ascii=False) + "\n\n"
+        except HTTPException as e:
+            yield "data: " + _sse_error_payload(e) + "\n\n"
+        except Exception as e:
+            yield (
+                "data: "
+                + json.dumps({"error": str(e)}, ensure_ascii=False)
+                + "\n\n"
+            )
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream; charset=utf-8",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
-    apply_turn_choice_consumption(game_state, body.choice.strip())
-    apply_derived_rank_from_skills(game_state)
-    apply_energy_max_from_skill_weights(game_state)
-    clamp_and_sync_energy(game_state)
-
-    await maybe_evolve_shelved_quests(game_state, force=False)
-
-    with get_db() as conn:
-        save_user_game_state(conn, user_id, game_state)
-
-    return {
-        "narrative": clean_nar,
-        "stats": stats,
-        "assistant_raw": raw_stored,
-        "game_state": game_state,
-    }
 
 
 if __name__ == "__main__":
