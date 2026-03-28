@@ -247,7 +247,7 @@
       flex-direction: column;
       min-height: 0;
     }
-    /* 劇情區：純白字、純黑底，行距舒適（手機於下方 @media 再略放大 line-height） */
+    /* 劇情區：敘述／對話極淺灰、純黑底；【】類標題金色；行高 1.8、字距 0.5px 減疲勞 */
     .story-panel-body {
       background: #000000;
     }
@@ -255,7 +255,8 @@
     #story-scroll .story-segment-body,
     #story-scroll .story-segment-body--rich,
     #story-scroll .story-segment-body--typing {
-      color: #ffffff;
+      color: #f0f0f0;
+      letter-spacing: 0.5px;
     }
     .story-scroll {
       flex: 1 1 0;
@@ -263,24 +264,25 @@
       overflow-y: auto;
       overflow-x: hidden;
       padding: 1rem 1.25rem 1.2rem;
-      line-height: 1.65;
+      line-height: 1.8;
       font-size: clamp(0.746rem, 1.566vw, 1.146rem);
-      color: #ffffff;
+      color: #f0f0f0;
       background: #000000;
-      text-shadow: 0 0 1px rgba(255, 255, 255, 0.25), 0 0 18px rgba(255, 255, 255, 0.06);
+      letter-spacing: 0.5px;
+      text-shadow: 0 0 1px rgba(255, 255, 255, 0.18), 0 0 14px rgba(255, 255, 255, 0.05);
       white-space: pre-wrap;
       word-break: break-word;
       scroll-behavior: smooth;
     }
     .story-scroll:empty::before {
       content: "黑幕未揭。選一刃，或自書一行命數。";
-      color: rgba(255, 255, 255, 0.45);
+      color: rgba(240, 240, 240, 0.5);
     }
     .story-scroll .story-user-line {
-      line-height: 1.65;
+      line-height: 1.8;
       font-size: 1em;
-      color: #ffffff;
-      letter-spacing: 0.06em;
+      color: #f0f0f0;
+      letter-spacing: 0.5px;
       margin-bottom: 1.45em;
       padding: 0.35rem 0 0.35rem 0.55rem;
       border-left: 2px solid rgba(201, 168, 92, 0.35);
@@ -309,14 +311,17 @@
       white-space: normal;
     }
     #story-scroll .story-narrative-heading {
-      color: #ffffff;
+      color: #c9a85c;
+      letter-spacing: 0.5px;
+      line-height: 1.8;
+      text-shadow: 0 0 1px rgba(201, 168, 92, 0.45), 0 0 14px rgba(201, 168, 92, 0.2);
     }
     .story-scroll.story-scroll--tw-skip {
       cursor: pointer;
     }
     .story-segment-body--typing {
-      min-height: 1.65em;
-      line-height: 1.65;
+      min-height: 1.8em;
+      line-height: 1.8;
     }
     @keyframes story-tw-tail-in {
       from { opacity: 0.28; }
@@ -395,9 +400,9 @@
     }
     .story-choice-preview-inner {
       font-size: 0.82rem;
-      line-height: 1.6;
-      letter-spacing: 0.04em;
-      color: #ffffff;
+      line-height: 1.8;
+      letter-spacing: 0.5px;
+      color: #f0f0f0;
       white-space: normal;
       word-break: break-word;
     }
@@ -407,7 +412,8 @@
       align-items: baseline;
       gap: 0.35em 0.55em;
       margin-bottom: 0.42em;
-      line-height: 1.55;
+      line-height: 1.8;
+      letter-spacing: 0.5px;
     }
     .story-choice-preview-line:last-child {
       margin-bottom: 0;
@@ -415,14 +421,14 @@
     .story-choice-preview-num {
       color: #c9a85c;
       font-weight: 800;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.06em;
       text-shadow: 0 0 14px rgba(201, 168, 92, 0.4);
       flex-shrink: 0;
     }
     .story-choice-preview-desc {
       color: #ffffff;
       font-weight: 600;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.5px;
       flex: 1 1 10em;
       min-width: 0;
     }
@@ -455,7 +461,7 @@
     button.story-choice-btn {
       text-align: center;
       background: #000000;
-      color: #e8c56e;
+      color: #c9a85c;
       border: 1px solid #c9a85c;
       border-radius: 6px;
       padding: 10px 8px;
@@ -665,19 +671,24 @@
       }
       #game-root .story-scroll {
         padding: 0.55rem 14px 0.45rem;
-        line-height: 1.72;
+        line-height: 1.8;
         font-size: clamp(0.95rem, 3.6vw, 1.12rem);
+        letter-spacing: 0.5px;
         scroll-padding-bottom: 2.35rem;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
-        color: #ffffff;
+        color: #f0f0f0;
         background: #000000;
       }
       #game-root .story-scroll .story-segment-body,
       #game-root .story-scroll .story-segment-body--rich,
       #game-root .story-scroll .story-user-line {
-        line-height: 1.72;
-        color: #ffffff;
+        line-height: 1.8;
+        letter-spacing: 0.5px;
+        color: #f0f0f0;
+      }
+      #game-root #story-scroll .story-narrative-heading {
+        color: #c9a85c;
       }
       #game-root .story-choices {
         padding: 3px 10px 4px;
@@ -1300,8 +1311,9 @@
       overflow-y: auto;
       padding: 1rem 1.1rem 0.65rem;
       font-size: 0.9rem;
-      line-height: 1.7;
-      color: #ffffff;
+      line-height: 1.8;
+      letter-spacing: 0.5px;
+      color: #f0f0f0;
       white-space: pre-wrap;
       word-break: break-word;
     }
@@ -1330,8 +1342,8 @@
       padding: 0.55rem 0.65rem;
       font-family: inherit;
       font-size: 0.78rem;
-      letter-spacing: 0.04em;
-      line-height: 1.5;
+      letter-spacing: 0.5px;
+      line-height: 1.8;
       cursor: pointer;
       display: flex;
       flex-wrap: wrap;
@@ -1342,12 +1354,14 @@
     button.game-modal-choice-btn .game-modal-choice-num {
       color: #c9a85c;
       font-weight: 800;
+      letter-spacing: 0.06em;
       text-shadow: 0 0 10px rgba(201, 168, 92, 0.35);
       flex-shrink: 0;
     }
     button.game-modal-choice-btn .game-modal-choice-desc {
       color: #ffffff;
       font-weight: 600;
+      letter-spacing: 0.5px;
       flex: 1 1 12em;
       min-width: 0;
     }
