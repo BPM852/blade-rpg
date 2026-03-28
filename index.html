@@ -16,28 +16,20 @@
   <style>
     :root {
       --bg: #000000;
-      --bg-deep: #101018;
       --gold: #c9a85c;
       --gold-dim: #8a7640;
       --gold-glow: rgba(201, 168, 92, 0.35);
-      --border: #3a3220;
+      --border: rgba(201, 168, 92, 0.32);
+      --border-metal: #c9a85c;
       --font: "Georgia", "Times New Roman", "Noto Serif TC", serif;
       --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
-      --mobile-nav-h: 5.25rem;
+      --mobile-nav-h: 5.65rem;
     }
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
       height: 100%;
-      background-color: var(--bg);
-      background-image: linear-gradient(
-        165deg,
-        #000000 0%,
-        #060608 38%,
-        var(--bg-deep) 72%,
-        #16161c 100%
-      );
-      background-attachment: fixed;
+      background: #000000;
       color: var(--gold);
       font-family: var(--font);
     }
@@ -161,6 +153,7 @@
     header {
       padding: 0.75rem 1.25rem;
       border-bottom: 1px solid var(--border);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
       letter-spacing: 0.35em;
       font-size: 0.72rem;
       text-transform: uppercase;
@@ -230,6 +223,7 @@
     }
     .panel {
       border-right: 1px solid var(--border);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
       display: flex;
       flex-direction: column;
       min-height: 0;
@@ -243,6 +237,7 @@
       letter-spacing: 0.28em;
       color: var(--gold-dim);
       border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 0 rgba(201, 168, 92, 0.06);
     }
     .story-panel {
       min-height: 0;
@@ -333,7 +328,8 @@
       flex-shrink: 0;
       margin-top: 0.25rem;
       padding: 0.85rem 1.25rem 1.05rem;
-      border-top: 1px solid rgba(201, 168, 92, 0.28);
+      border-top: 1px solid rgba(201, 168, 92, 0.38);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
       display: flex;
       flex-direction: column;
       gap: 0.45rem;
@@ -446,8 +442,8 @@
         0 0 24px rgba(201, 168, 92, 0.07),
         inset 0 0 10px rgba(0, 0, 0, 0.65);
     }
-    /* 道行：加粗＋略強金色光暈 */
-    aside.stats .stat-row:has(#b-cultivation) .bar {
+    /* 道行：加粗＋略強金色光暈（側欄或狀態彈窗內皆適用） */
+    #game-stat-list .stat-row:has(#b-cultivation) .bar {
       height: 11px;
       border-radius: 5px;
       box-shadow:
@@ -455,7 +451,7 @@
         0 0 32px rgba(201, 168, 92, 0.12),
         inset 0 0 12px rgba(0, 0, 0, 0.68);
     }
-    aside.stats .stat-row:has(#b-cultivation) .bar > i {
+    #game-stat-list .stat-row:has(#b-cultivation) .bar > i {
       border-radius: 3px;
       box-shadow:
         0 0 14px rgba(201, 168, 92, 0.45),
@@ -483,6 +479,39 @@
     footer.actions .actions-row--dock,
     footer.actions .actions-row--secondary {
       display: contents;
+    }
+    button.action[data-panel="stats"] {
+      display: none;
+    }
+    @media (max-width: 800px) {
+      #game-root > main {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+      }
+      #game-root main .panel.story-panel {
+        flex: 1;
+        min-height: 0;
+        border-bottom: none;
+      }
+      #game-root main aside.stats {
+        display: none !important;
+      }
+      button.action[data-panel="stats"] {
+        display: block;
+      }
+      footer.actions {
+        grid-template-columns: repeat(5, 1fr);
+      }
+      #game-root .story-choices {
+        gap: 0.8rem;
+      }
+      #game-root button.story-choice-btn {
+        width: 100%;
+        max-width: 100%;
+      }
     }
     @media (max-width: 640px) {
       footer.actions { grid-template-columns: repeat(2, 1fr); }
@@ -517,11 +546,6 @@
         display: flex;
         flex-direction: column;
       }
-      #game-root main aside.stats {
-        flex: 0 1 auto;
-        max-height: min(46vh, 380px);
-        min-height: 0;
-      }
       #game-root > header {
         padding-left: 20px;
         padding-right: 20px;
@@ -535,7 +559,7 @@
         padding: 1rem 20px 1.25rem;
         line-height: 1.6;
         font-size: clamp(0.95rem, 3.6vw, 1.12rem);
-        scroll-padding-bottom: 1.25rem;
+        scroll-padding-bottom: 6.5rem;
         -webkit-overflow-scrolling: touch;
       }
       #game-root .story-scroll .story-segment-body,
@@ -544,11 +568,13 @@
         line-height: 1.6;
       }
       #game-root .story-choices {
-        padding: 0.9rem 20px 1.1rem;
-        gap: 0.6rem;
+        padding: 0.95rem 20px 1.15rem;
+        gap: 0.88rem;
         flex-shrink: 0;
       }
       #game-root button.story-choice-btn {
+        width: 100%;
+        max-width: 100%;
         min-height: 54px;
         padding: 0.85rem 1rem;
         line-height: 1.5;
@@ -556,50 +582,6 @@
         font-size: 0.88rem;
         display: flex;
         align-items: center;
-      }
-      /* 名號／境界／狀態 三欄；精神獨占次列，數值對齊 */
-      aside.stats .stat-list {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 0.55rem 0.45rem;
-        padding: 1rem 20px;
-        align-items: stretch;
-      }
-      aside.stats .stat-row.stat-row--sidebar-meta {
-        margin-bottom: 0;
-        grid-column: span 1;
-        padding: 0.5rem 0.4rem;
-        border: 1px solid rgba(58, 50, 32, 0.55);
-        border-radius: 10px;
-        background: rgba(6, 5, 4, 0.72);
-      }
-      aside.stats .stat-row.stat-row--sidebar-meta:nth-child(4) {
-        grid-column: 1 / -1;
-      }
-      aside.stats .stat-row.stat-row--sidebar-meta .stat-loc-label {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 0.32rem;
-        letter-spacing: 0.06em;
-        margin-bottom: 0;
-      }
-      aside.stats .stat-row.stat-row--sidebar-meta .stat-loc-label .val,
-      aside.stats .stat-row.stat-row--sidebar-meta .stat-loc-label .stat-rank-line {
-        text-align: right;
-        align-self: stretch;
-        justify-content: flex-end;
-      }
-      aside.stats .stat-row.stat-row--sidebar-meta .stat-rank-line {
-        max-width: 100%;
-        justify-content: flex-end;
-      }
-      aside.stats .stat-row:not(.stat-row--sidebar-meta) {
-        grid-column: 1 / -1;
-        margin-bottom: 0.85rem;
-      }
-      aside.stats .btn-realm-shuttle {
-        grid-column: 1 / -1;
-        border-radius: 10px;
       }
       #game-root .err {
         padding-left: 20px;
@@ -614,6 +596,7 @@
         z-index: 35;
         border-top: 1px solid var(--border);
         box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.45);
+        scroll-margin-bottom: 0.5rem;
       }
       #game-root .custom-action-row input[type="text"] {
         min-height: 52px;
@@ -665,8 +648,8 @@
         right: 0;
         bottom: 0;
         z-index: 40;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.55rem;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 0.45rem;
         padding: 12px 20px;
         padding-bottom: max(12px, env(safe-area-inset-bottom));
         background: linear-gradient(180deg, rgba(12, 10, 7, 0.98) 0%, #020202 100%);
@@ -682,24 +665,24 @@
         letter-spacing: 0.12em;
         border-radius: 10px;
       }
-      #game-root .bar {
+      #game-stat-list .bar {
         box-shadow:
           0 0 18px rgba(201, 168, 92, 0.26),
           0 0 36px rgba(201, 168, 92, 0.1),
           inset 0 0 12px rgba(0, 0, 0, 0.72);
       }
-      #game-root .bar > i {
+      #game-stat-list .bar > i {
         box-shadow:
           0 0 12px rgba(201, 168, 92, 0.42),
           0 0 26px rgba(201, 168, 92, 0.28);
       }
-      #game-root aside.stats .stat-row:has(#b-cultivation) .bar {
+      #game-stat-list .stat-row:has(#b-cultivation) .bar {
         box-shadow:
           0 0 20px rgba(201, 168, 92, 0.32),
           0 0 40px rgba(201, 168, 92, 0.14),
           inset 0 0 12px rgba(0, 0, 0, 0.72);
       }
-      #game-root aside.stats .stat-row:has(#b-cultivation) .bar > i {
+      #game-stat-list .stat-row:has(#b-cultivation) .bar > i {
         box-shadow:
           0 0 16px rgba(201, 168, 92, 0.5),
           0 0 32px rgba(201, 168, 92, 0.35),
@@ -816,7 +799,7 @@
     }
     .custom-action-row {
       display: flex;
-      align-items: stretch;
+      align-items: center;
       gap: 0.5rem;
       padding: 0.65rem 1rem;
       border-top: 1px solid var(--border);
@@ -918,8 +901,12 @@
       display: flex;
       flex-direction: column;
       background: rgba(12, 10, 8, 0.94);
-      border: 1px solid var(--gold-dim);
-      box-shadow: 0 0 32px var(--gold-glow);
+      border: 1px solid var(--border);
+      box-shadow:
+        0 0 0 1px rgba(201, 168, 92, 0.12),
+        0 0 32px var(--gold-glow),
+        0 0 28px rgba(201, 168, 92, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
     .game-modal-x {
       position: absolute;
@@ -941,6 +928,97 @@
       color: var(--gold);
       border-color: var(--gold-dim);
     }
+
+    .stats-modal-backdrop {
+      background: rgba(0, 0, 0, 0.82) !important;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .game-modal--stats .stats-modal-sheet {
+      max-height: min(82vh, 720px);
+      border-color: rgba(201, 168, 92, 0.45);
+    }
+    .stats-modal-title {
+      margin: 0;
+      padding: 1rem 3rem 0.65rem 1.15rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.42em;
+      font-weight: 400;
+      color: var(--gold-dim);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 0 rgba(201, 168, 92, 0.08);
+    }
+    .stats-modal-body-mount {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 0 1rem;
+    }
+    .stats-modal-body-mount .stat-list {
+      padding: 1rem 1.15rem 0.5rem;
+    }
+    button.stats-modal-x {
+      position: absolute;
+      top: 0.55rem;
+      right: 0.55rem;
+      z-index: 3;
+      width: 2.45rem;
+      height: 2.45rem;
+      padding: 0;
+      margin: 0;
+      border: 1px solid rgba(201, 168, 92, 0.55);
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 28%, rgba(72, 64, 48, 0.95), rgba(8, 7, 5, 0.98));
+      box-shadow:
+        0 0 14px rgba(201, 168, 92, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.07);
+      color: var(--border-metal);
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    button.stats-modal-x:hover {
+      border-color: rgba(201, 168, 92, 0.85);
+      color: #f0e6c8;
+      box-shadow:
+        0 0 20px rgba(201, 168, 92, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    }
+    .stats-modal-x-inner {
+      font-size: 1.45rem;
+      line-height: 1;
+      font-weight: 300;
+      margin-top: -0.08em;
+    }
+    @keyframes stats-sheet-in {
+      from {
+        transform: translateY(100%);
+        opacity: 0.85;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+    @media (max-width: 600px) {
+      .game-modal--stats {
+        align-items: flex-end;
+        justify-content: center;
+        padding: 0;
+      }
+      .game-modal--stats .stats-modal-sheet {
+        width: 100%;
+        max-width: none;
+        max-height: min(88dvh, 640px);
+        border-radius: 18px 18px 0 0;
+        animation: stats-sheet-in 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
+      }
+    }
+
     .game-modal-title {
       margin: 0;
       padding: 0.85rem 2.5rem 0.5rem 1rem;
@@ -1910,7 +1988,8 @@
       </section>
       <aside class="stats">
         <div class="panel-head">屬性</div>
-        <div class="stat-list">
+        <div id="stats-aside-host">
+        <div id="game-stat-list" class="stat-list">
           <div class="stat-row stat-row--location stat-row--sidebar-meta">
             <label class="stat-loc-label"><span class="stat-loc-emoji" aria-hidden="true">📛</span> 名號 <span class="val val--location" id="v-player-name-sidebar">—</span></label>
           </div>
@@ -1954,6 +2033,7 @@
           </div>
           <button type="button" class="btn-realm-shuttle" id="btn-realm-shuttle" aria-haspopup="dialog" aria-controls="modal-realm-shuttle">【🌌 界域穿梭】</button>
         </div>
+        </div>
       </aside>
     </main>
     <div class="err" id="error"></div>
@@ -1972,6 +2052,7 @@
       <div class="actions-row actions-row--dock" aria-label="主要操作">
         <button type="button" class="action" data-panel="inventory">行囊</button>
         <button type="button" class="action" data-panel="martial">武學</button>
+        <button type="button" class="action" data-panel="stats">狀態</button>
       </div>
       <div class="actions-row actions-row--secondary" aria-label="其他面板">
         <button type="button" class="action" data-panel="companions">同伴</button>
@@ -1996,6 +2077,16 @@
       <h3 class="ma-modal-h">武學</h3>
       <div id="ma-modal-loading" class="game-modal-loading">同步武學因果…</div>
       <div id="ma-modal-mount" class="ma-modal-mount hidden"></div>
+    </div>
+  </div>
+  <div id="modal-stats" class="game-modal game-modal--stats hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="stats-modal-title">
+    <div class="game-modal-backdrop stats-modal-backdrop" data-close="modal-stats"></div>
+    <div class="game-modal-sheet stats-modal-sheet">
+      <button type="button" class="stats-modal-x" data-close="modal-stats" aria-label="關閉">
+        <span class="stats-modal-x-inner" aria-hidden="true">×</span>
+      </button>
+      <h3 id="stats-modal-title" class="stats-modal-title">狀態</h3>
+      <div id="stats-modal-body-mount" class="stats-modal-body-mount"></div>
     </div>
   </div>
   <div id="modal-companions" class="game-modal hidden" aria-hidden="true">
@@ -2382,6 +2473,7 @@
     }
 
     async function openInventoryModal() {
+      closeModal("modal-stats");
       const modal = document.getElementById("modal-inventory");
       const loading = document.getElementById("inv-modal-loading");
       const mount = document.getElementById("inv-modal-mount");
@@ -2865,6 +2957,7 @@
     }
 
     async function openMartialModal() {
+      closeModal("modal-stats");
       const modal = document.getElementById("modal-martial");
       const loading = document.getElementById("ma-modal-loading");
       const mount = document.getElementById("ma-modal-mount");
@@ -3115,6 +3208,7 @@
     }
 
     async function openCompanionsModal() {
+      closeModal("modal-stats");
       const modal = document.getElementById("modal-companions");
       const loading = document.getElementById("co-modal-loading");
       const mount = document.getElementById("co-modal-mount");
@@ -3255,6 +3349,7 @@
     }
 
     async function openQuestsModal() {
+      closeModal("modal-stats");
       const modal = document.getElementById("modal-quests");
       const loading = document.getElementById("quest-roster-loading");
       const mount = document.getElementById("quest-roster-mount");
@@ -3487,7 +3582,30 @@
       return { narrative, choicesFromJson, parsed: pr.ok ? pr.value : null, parseOk: pr.ok };
     }
 
+    function reparentStatsListToAside() {
+      const list = document.getElementById("game-stat-list");
+      const host = document.getElementById("stats-aside-host");
+      if (list && host && list.parentElement !== host) host.appendChild(list);
+    }
+
+    function openStatsModal() {
+      closeModal("modal-inventory");
+      closeModal("modal-martial");
+      closeModal("modal-companions");
+      const mq = document.getElementById("modal-quests");
+      if (mq && !mq.classList.contains("hidden")) closeModal("modal-quests");
+      closeModal("modal-rename");
+      closeModal("modal-realm-shuttle");
+      const list = document.getElementById("game-stat-list");
+      const mount = document.getElementById("stats-modal-body-mount");
+      if (list && mount) mount.appendChild(list);
+      openModalOnly("modal-stats");
+    }
+
     function closeModal(modalId) {
+      if (modalId === "modal-stats") {
+        reparentStatsListToAside();
+      }
       const el = document.getElementById(modalId);
       if (!el) return;
       el.classList.add("hidden");
@@ -3530,6 +3648,7 @@
     });
 
     document.getElementById("btn-realm-shuttle")?.addEventListener("click", () => {
+      closeModal("modal-stats");
       openModalOnly("modal-realm-shuttle");
     });
     document.getElementById("modal-realm-shuttle")?.addEventListener("click", (e) => {
@@ -3973,6 +4092,10 @@
         await openQuestsModal();
         return;
       }
+      if (panel === "stats") {
+        openStatsModal();
+        return;
+      }
       const modalId = "modal-" + panel;
       const modal = document.getElementById(modalId);
       if (!modal) return;
@@ -3983,6 +4106,7 @@
         errEl.textContent = "此面板尚未實作";
         return;
       }
+      closeModal("modal-stats");
       openModalOnly(modalId);
       loading.classList.remove("hidden");
       bodyEl.classList.remove("game-modal-body--rich");
@@ -4383,11 +4507,16 @@
           openCompanionsModal();
           return;
         }
+        if (panel === "stats") {
+          openStatsModal();
+          return;
+        }
         if (panel) openPanel(panel);
       });
     });
 
     document.getElementById("btn-open-rename").addEventListener("click", () => {
+      closeModal("modal-stats");
       renameInput.value = displayPlayerName.textContent.trim() === "—" ? "" : displayPlayerName.textContent.trim();
       openModalOnly("modal-rename");
       renameInput.focus();
@@ -4437,6 +4566,14 @@
         ev.preventDefault();
         submitCustom();
       }
+    });
+    customInput.addEventListener("focus", () => {
+      requestAnimationFrame(() => {
+        const row = customInput.closest(".custom-action-row");
+        if (row) row.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        const story = document.getElementById("story-scroll");
+        if (story) story.scrollTo({ top: story.scrollHeight, behavior: "smooth" });
+      });
     });
 
     (async function boot() {
