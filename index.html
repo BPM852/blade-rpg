@@ -588,6 +588,8 @@
         min-height: 0;
         max-height: 100dvh;
         overflow: hidden;
+        /* 縮小底部固定列後，預留高度一併收緊，把空間還給劇情區 */
+        --mobile-nav-h: 3.38rem;
         padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
       }
       #game-root > main {
@@ -626,7 +628,7 @@
         padding: 0.55rem 14px 0.45rem;
         line-height: 1.6;
         font-size: clamp(0.95rem, 3.6vw, 1.12rem);
-        scroll-padding-bottom: 3.25rem;
+        scroll-padding-bottom: 2.35rem;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
       }
@@ -636,8 +638,8 @@
         line-height: 1.6;
       }
       #game-root .story-choices {
-        padding: 4px 10px 6px;
-        gap: 4px;
+        padding: 3px 10px 4px;
+        gap: 3px;
         flex-shrink: 0;
         grid-template-columns: 1fr 1fr;
         grid-template-rows: auto auto;
@@ -660,29 +662,36 @@
       #game-root .err {
         padding-left: 20px;
         padding-right: 20px;
+        padding-bottom: 0.35rem;
         flex-shrink: 0;
       }
+      /* 自訂行動：約 30% 扁平化（高度／內距），與下方按鈕區貼合 */
       #game-root .custom-action-row {
-        padding: 0.45rem 14px 0.5rem;
+        padding: 0.28rem 12px 0.3rem;
         margin-top: 0;
+        margin-bottom: 0;
         flex-shrink: 0;
         position: sticky;
         bottom: 0;
         z-index: 35;
         border-top: 1px solid var(--border);
-        box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.4);
-        scroll-margin-bottom: 0.35rem;
+        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.35);
+        scroll-margin-bottom: 0.2rem;
+        gap: 0.35rem;
       }
       #game-root .custom-action-row input[type="text"] {
-        min-height: 52px;
-        padding: 0.75rem 1rem;
+        min-height: 36px;
+        padding: 0.48rem 0.68rem;
         font-size: 16px;
-        border-radius: 10px;
+        line-height: 1.35;
+        border-radius: 7px;
       }
       #game-root .custom-action-row button.send-custom {
-        min-height: 52px;
-        border-radius: 10px;
-        padding: 0.65rem 1.05rem;
+        min-height: 36px;
+        border-radius: 7px;
+        padding: 0.44rem 0.72rem;
+        font-size: 11px;
+        letter-spacing: 0.08em;
       }
       .game-modal button.game-modal-choice-btn {
         min-height: 52px;
@@ -696,6 +705,7 @@
         flex-direction: column;
         padding: 0;
         gap: 0;
+        margin-top: 0;
         border-top: none;
         background: transparent;
         flex-shrink: 0;
@@ -704,18 +714,21 @@
       footer.actions .actions-row--secondary {
         display: grid;
       }
+      /* 同伴／任務／屬性：高度、內距、字級約縮 30%，並收緊與上下區塊的垂直間距 */
       footer.actions .actions-row--secondary {
         grid-template-columns: 1fr 1fr 1fr;
-        gap: 0.5rem;
-        padding: 0.85rem 20px 0.7rem;
+        gap: 0.32rem;
+        padding: 0.5rem 14px 0.42rem;
+        margin-bottom: 0;
         border-top: 1px solid var(--border);
         background: rgba(5, 5, 5, 0.96);
       }
       footer.actions .actions-row--secondary .action {
-        min-height: 50px;
-        padding: 0.8rem 0.55rem;
-        border-radius: 10px;
-        font-size: 0.88rem;
+        min-height: 35px;
+        padding: 0.54rem 0.36rem;
+        border-radius: 7px;
+        font-size: max(11px, 0.62rem);
+        line-height: 1.25;
       }
       footer.actions .actions-row--dock {
         position: fixed;
@@ -724,21 +737,24 @@
         bottom: 0;
         z-index: 40;
         grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
-        padding: 12px 20px;
-        padding-bottom: max(12px, env(safe-area-inset-bottom));
+        gap: 0.32rem;
+        padding: 8px 14px;
+        padding-bottom: max(8px, env(safe-area-inset-bottom));
+        margin-top: 0;
         background: linear-gradient(180deg, rgba(12, 10, 7, 0.98) 0%, #020202 100%);
         border-top: 1px solid rgba(201, 168, 92, 0.38);
         box-shadow:
-          0 -6px 28px rgba(201, 168, 92, 0.12),
-          0 -16px 48px rgba(0, 0, 0, 0.88);
+          0 -4px 18px rgba(201, 168, 92, 0.1),
+          0 -12px 36px rgba(0, 0, 0, 0.85);
       }
+      /* 行囊／武學：同比例縮小 */
       footer.actions .actions-row--dock .action {
-        min-height: 54px;
-        padding: 0.85rem 0.55rem;
-        font-size: 0.95rem;
-        letter-spacing: 0.12em;
-        border-radius: 10px;
+        min-height: 38px;
+        padding: 0.58rem 0.36rem;
+        font-size: max(11px, 0.67rem);
+        letter-spacing: 0.09em;
+        line-height: 1.25;
+        border-radius: 7px;
       }
       #game-stat-list .bar {
         box-shadow:
