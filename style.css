@@ -1,0 +1,928 @@
+/*
+ * 巨型字級（再約 200%）：根字 80–100px、行高 1.5、上下堆疊佈局
+ * 於 index.html 內嵌樣式之後載入。
+ * 文案統一純白：覆寫內嵌 :root 之金色變數，供 var(--gold) 等使用。
+ */
+
+:root {
+  --gold: #ffffff;
+  --gold-dim: #c8c8c8;
+  --gold-glow: rgba(255, 255, 255, 0.34);
+  --border: #3d3d3d;
+}
+
+html {
+  font-size: clamp(80px, 9vw, 100px);
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  line-height: 1.5;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+#game-root {
+  overflow: hidden;
+}
+
+/* —— 主版面：取消左右分欄，屬性在上、劇情全寬在下 —— */
+main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  gap: 0;
+  overflow: hidden;
+}
+
+#game-root > header {
+  flex-shrink: 0;
+}
+
+#game-root > .err {
+  flex-shrink: 0;
+}
+
+#game-root > .custom-action-row,
+#game-root > footer.actions {
+  flex-shrink: 0;
+}
+
+aside.stats {
+  order: -1;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  border-right: none !important;
+  border-bottom: 1px solid var(--border);
+  min-height: 0;
+}
+
+.panel.story-panel {
+  order: 0;
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  max-width: 100%;
+  border-right: none !important;
+}
+
+/* 屬性：橫向網格，多行自適應 */
+.stat-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 1.1rem 1.4rem;
+  padding: 1rem 1.25rem 1.15rem;
+  align-items: start;
+  flex: none !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: min(46vh, 720px);
+}
+
+.stat-row {
+  margin-bottom: 0;
+}
+
+.stat-row label {
+  line-height: 1.5;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+  white-space: normal;
+  font-size: 1.06rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.stat-row label span.val {
+  line-height: 1.45;
+  font-size: 1.18rem;
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+/* 側欄：位面／世界／地址 */
+.stat-row--location .stat-loc-label {
+  display: block;
+  color: #ffffff;
+  font-size: 1.06rem;
+  line-height: 1.5;
+  margin-bottom: 0.35rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+.stat-row--location .val--location {
+  font-size: 1.18rem;
+  line-height: 1.45;
+  font-weight: 400;
+  letter-spacing: normal;
+  color: #ffffff;
+}
+
+.stat-loc-emoji {
+  margin-right: 0.15em;
+  font-style: normal;
+}
+
+.bar {
+  height: 14px;
+}
+
+.auth-card {
+  max-width: min(1100px, 100%);
+}
+
+.auth-card h2 {
+  font-size: clamp(100px, 1.45rem, 140px);
+  line-height: 1.2;
+  font-weight: 900;
+  letter-spacing: 2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* —— 頂欄 —— */
+header {
+  padding: 1rem 1.35rem;
+  line-height: 1.5;
+  font-size: 1.08rem;
+  flex-wrap: wrap;
+}
+
+header .title-block {
+  gap: 0.45rem;
+}
+
+header .title-block > div:first-child {
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+header .title-block > div:first-child strong {
+  font-weight: 900;
+  letter-spacing: 2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+header .player-tag {
+  line-height: 1.5;
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+}
+
+header .player-tag .name-link,
+header .player-tag .name-link span {
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+header button.header-btn {
+  min-height: 2.8em;
+  padding: 0.6rem 0.95rem;
+  line-height: 1.45;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* —— 區塊標題（≈120px 視覺） —— */
+.panel-head {
+  line-height: 1.5;
+  padding: 0.75rem 1.2rem;
+  font-size: clamp(96px, 1.22rem, 126px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* —— 劇情捲動區 #story-scroll：僅中間敘事（字級為前一版 1/3 基礎的 2 倍）；頂欄／右側屬性／底欄按鈕／自訂行動維持原巨大化 —— */
+.story-scroll {
+  font-size: clamp(0.746rem, 1.566vw, 1.146rem);
+  line-height: 1.6;
+  max-width: min(1200px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 1.15rem clamp(0.85rem, 2.5vw, 1.5rem) 1.35rem;
+  color: #ffffff;
+  background: transparent;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.35), 0 0 12px rgba(255, 255, 255, 0.1);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+  scroll-padding-bottom: max(0.65rem, 1.35em);
+  overflow-anchor: auto;
+  scroll-behavior: smooth;
+}
+
+.story-scroll:empty::before {
+  line-height: 1.6;
+  font-size: 1em;
+  color: #ffffff;
+}
+
+.story-segment {
+  margin-bottom: 2.1em;
+}
+
+.story-segment:last-of-type {
+  margin-bottom: 0.75em;
+}
+
+.story-segment-body,
+.story-segment-body--rich {
+  line-height: 1.6;
+  color: #ffffff;
+}
+
+/* 獨行【標題】：【因果結算】【現狀】【抉擇】等儀式感標籤 */
+.story-scroll .story-narrative-heading {
+  display: block;
+  font-size: 1.1em;
+  font-weight: 900;
+  line-height: 1.6;
+  letter-spacing: 2px;
+  color: #ffffff;
+  margin-top: 1.65em;
+  margin-bottom: 1.15em;
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.5), 0 0 14px rgba(255, 255, 255, 0.12);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+.story-scroll .story-segment-body--rich > .story-narrative-heading:first-child {
+  margin-top: 0;
+}
+
+/* 段落間空行（雙換行） */
+.story-scroll .story-segment-body--rich br + br {
+  display: block;
+  margin-top: 2.35em;
+  line-height: 0;
+}
+
+.story-scroll .story-user-line {
+  line-height: 1.6;
+  margin-bottom: 1.55em;
+  padding: 0.55rem 0 0.55rem 0.75rem;
+  font-size: 1em;
+  color: #ffffff;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.story-chronicle-divider {
+  margin: 1.6rem 0 1.7rem;
+}
+
+/* —— 抉擇：滿寬、巨大垂直間距 —— */
+#story-choices:not(:empty)::before {
+  content: "【抉擇】";
+  display: block;
+  font-size: calc(1.08rem * 1.1);
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffffff;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.story-choices {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1.9rem;
+  padding: 1.15rem 1.35rem 1.5rem;
+}
+
+.story-choices.story-choices--await-reveal {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.story-choices.story-choices--fade-reveal {
+  opacity: 1;
+  pointer-events: auto;
+  transition: opacity 0.05s ease-out;
+}
+
+/* —— 【抉擇】選項按鈕：字級為原 1.08rem 的 2 倍；厚實內距、加粗、垂直滿寬 —— */
+button.story-choice-btn {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  font-family: inherit;
+  font-weight: 900;
+  font-size: 2.16rem;
+  line-height: 1.45;
+  letter-spacing: 0.035em;
+  color: #ffffff;
+  background: #2d2d2d;
+  border: 1px solid #4a4a4a;
+  border-radius: 4px;
+  cursor: pointer;
+  min-height: 5.75em;
+  padding: 1.7rem 1.55rem;
+  margin-bottom: 0;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease,
+    color 0.18s ease,
+    text-shadow 0.18s ease;
+}
+
+button.story-choice-btn:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.01);
+  border-color: #8a8a8a;
+  box-shadow: 0 0 22px rgba(255, 255, 255, 0.18), 0 0 40px rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  background: #3d3d3d;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.45), 0 0 24px rgba(255, 255, 255, 0.15);
+}
+
+button.story-choice-btn:active:not(:disabled) {
+  transform: scale(0.97);
+  background: #282828;
+  border-color: #ffffff;
+}
+
+button.story-choice-btn:disabled {
+  opacity: 0.45;
+  cursor: wait;
+  transform: none;
+}
+
+/* —— 底部功能：2×2 大按鈕 —— */
+footer.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 1.1rem 1.1rem;
+  padding: 1.15rem 1.2rem 1.45rem;
+}
+
+button.action {
+  width: 100%;
+  max-width: none;
+  min-height: 3.4em;
+  padding: 1rem 0.75rem;
+  line-height: 1.5;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* —— 自訂行動：單行輸入 + 發送（橫向，固定在畫面底部區） —— */
+.custom-action-row {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  padding: 1rem 1.2rem 1.1rem;
+  gap: 0.7rem;
+}
+
+#custom-action {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+  min-height: 2.85em;
+  padding: 0.75rem 0.95rem;
+  line-height: 1.5;
+  font-size: 1.08rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  background: #2d2d2d;
+  border: 1px solid #454545;
+  border-radius: 4px;
+  color: #ffffff;
+}
+
+#custom-action::placeholder {
+  color: #b0b0b0;
+  opacity: 1;
+}
+
+#custom-action:focus {
+  outline: none;
+  border-color: #9a9a9a;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+#custom-action:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+button.send-custom {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 4.5em;
+  min-height: 2.85em;
+  padding: 0.75rem 1.15rem;
+  line-height: 1.5;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* —— 錯誤 —— */
+.err {
+  line-height: 1.5;
+  padding: 0 1.15rem 0.85rem;
+  font-size: 1.04rem;
+}
+
+/* —— 登入 —— */
+.auth-card .sub {
+  line-height: 1.5;
+  font-size: 1.05rem;
+}
+
+.auth-field label {
+  line-height: 1.5;
+  font-size: 1.05rem;
+}
+
+.auth-field input {
+  min-height: 2.9em;
+  line-height: 1.5;
+  font-size: 1.06rem;
+}
+
+.auth-actions button.primary {
+  min-height: 2.9em;
+  line-height: 1.5;
+  font-size: 1.06rem;
+}
+
+.auth-actions button.ghost {
+  line-height: 1.5;
+  font-size: 1.02rem;
+}
+
+#auth-error {
+  line-height: 1.5;
+  font-size: 1.02rem;
+}
+
+#reg-wait-hint {
+  line-height: 1.5;
+  font-size: 1.02rem;
+}
+
+/* —— 彈窗 —— */
+.game-modal-sheet {
+  max-width: min(920px, 96vw);
+  max-height: min(85vh, 1200px);
+}
+
+.game-modal-title {
+  line-height: 1.5;
+  padding: 1.1rem 2.8rem 0.65rem 1.1rem;
+  font-size: clamp(88px, 1.15rem, 118px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.game-modal-loading {
+  line-height: 1.5;
+  padding: 0.88rem 1.1rem;
+  font-size: 1.05rem;
+}
+
+.game-modal-body {
+  line-height: 1.5;
+  padding: 1.15rem 1.2rem 1rem;
+  font-size: 1.06rem;
+}
+
+.game-modal-choices {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  padding: 0.55rem 1.1rem 1.5rem;
+}
+
+button.game-modal-choice-btn {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 2.95em;
+  padding: 0.88rem 0.9rem;
+  line-height: 1.5;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.game-modal-x {
+  width: 2.65rem;
+  height: 2.65rem;
+  font-size: 1.55rem;
+}
+
+#modal-inventory .inv-sheet,
+#modal-martial .ma-sheet,
+#modal-companions .co-sheet {
+  width: 90%;
+  max-width: 90vw;
+}
+
+.inv-modal-h,
+.ma-modal-h,
+.co-modal-h {
+  line-height: 1.5;
+  padding: 1.1rem 2.8rem 0.6rem 1.1rem;
+  font-size: clamp(92px, 1.18rem, 122px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.inv-modal-mount,
+.ma-modal-mount,
+.co-modal-mount {
+  max-height: min(70vh, 900px);
+  padding: 0.9rem 1.1rem 1.25rem;
+}
+
+.inv-cat-block,
+.ma-cat-block {
+  margin-bottom: 1.25rem;
+}
+
+.inv-cat-head,
+.ma-cat-head,
+.ma-subhead {
+  line-height: 1.5;
+  margin-bottom: 0.62rem;
+  font-size: calc(1.05rem * 1.1);
+  font-weight: 900;
+  letter-spacing: 2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.inv-item-static {
+  line-height: 1.5;
+  font-size: 1.1rem;
+}
+
+.inv-item-meta {
+  line-height: 1.5;
+  font-size: 1.03rem;
+}
+
+.inv-item-desc {
+  line-height: 1.5;
+  margin-top: 0.35rem;
+  font-size: 1.04rem;
+}
+
+.inv-empty,
+.ma-empty {
+  line-height: 1.5;
+  font-size: 1.05rem;
+}
+
+button.inv-item-hit {
+  line-height: 1.5;
+  font-size: 1.1rem;
+}
+
+.inv-equipped-tag {
+  font-size: 1.03rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.ma-skill-card {
+  padding: 0.88rem 0.95rem 0.78rem;
+}
+
+.ma-skill-name--title {
+  line-height: 1.5;
+  font-size: 1.12rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ma-skill-desc {
+  line-height: 1.5;
+  margin-top: 0.52rem;
+  font-size: 1.05rem;
+}
+
+.ma-fusion-badge,
+.ma-realm {
+  line-height: 1.4;
+  font-size: 1.03rem;
+  padding: 0.38rem 0.58rem;
+}
+
+.ma-skill-actions.ma-open {
+  max-height: 10rem;
+}
+
+button.ma-btn-cultivate {
+  min-height: 2.95em;
+  padding: 0.78rem 0.82rem;
+  line-height: 1.5;
+  font-size: 1.06rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+button.ma-btn-abandon {
+  font-weight: 800;
+  letter-spacing: 0.05em;
+}
+
+/* 同伴彈窗：名號與括號行動鍵 */
+.cp-name {
+  font-weight: 900;
+  letter-spacing: 2px;
+  font-size: 1.1em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.cp-title-line {
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+.cp-favor-label,
+.cp-status-line {
+  font-weight: 500;
+  letter-spacing: normal;
+}
+
+.cp-btn-talk,
+.cp-btn-order {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.cp-ability-line,
+.cp-visual-line {
+  font-weight: 600;
+  letter-spacing: 0.03em;
+}
+
+/* 界域穿梭：位面分類標題 */
+.realm-shuttle-h {
+  font-weight: 900;
+  letter-spacing: 2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.realm-shuttle-option-title {
+  font-weight: 900;
+  letter-spacing: 2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.realm-shuttle-option-hint {
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+#game-root .btn-realm-shuttle {
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.rename-modal-field input {
+  min-height: 2.9em;
+  line-height: 1.5;
+  font-size: 1.05rem;
+}
+
+.rename-modal-actions button {
+  min-height: 2.85em;
+  line-height: 1.5;
+  font-size: 1.05rem;
+}
+
+.game-confirm-card {
+  max-width: min(720px, 94vw);
+  padding: 1.6rem 1.45rem 1.4rem;
+}
+
+.game-confirm-msg {
+  line-height: 1.5;
+  margin-bottom: 1.5rem;
+  font-size: 1.08rem;
+}
+
+button.game-confirm-btn {
+  min-height: 2.85em;
+  max-width: 320px;
+  padding: 0.82rem 1.05rem;
+  line-height: 1.5;
+  font-size: 1.05rem;
+}
+
+/* 萬界因果名冊：與巨型根字級對齊（略大於劇情、略小於主按鈕） */
+.quest-roster-modal .quest-roster-sheet {
+  width: 90%;
+  max-width: min(920px, 92vw);
+}
+
+.quest-roster-title {
+  font-size: clamp(92px, 1.12rem, 128px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.quest-roster-sub {
+  font-size: clamp(82px, 1.02rem, 112px);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.quest-card-name {
+  font-size: clamp(88px, 1.06rem, 118px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.quest-card-desc {
+  font-size: clamp(84px, 1.02rem, 112px);
+  font-weight: 400;
+  letter-spacing: normal;
+}
+
+button.quest-card-action {
+  font-size: clamp(78px, 0.98rem, 102px);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button.quest-roster-close-btn {
+  font-size: clamp(86px, 1.04rem, 114px);
+  min-height: 2.85em;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.quest-causal-shift {
+  font-size: clamp(72px, 0.94rem, 96px);
+}
+
+/* ========== 純白全局：覆蓋 index 內嵌之米色／彩色字面（彈窗在 #game-root 外須一併列出）========== */
+#auth-overlay,
+#auth-overlay * {
+  color: #ffffff !important;
+}
+
+#game-root,
+#game-root * {
+  color: #ffffff !important;
+}
+
+.game-modal,
+.game-modal * {
+  color: #ffffff !important;
+}
+
+#game-confirm-root,
+#game-confirm-root * {
+  color: #ffffff !important;
+}
+
+#auth-overlay input::placeholder,
+#game-root input::placeholder,
+.game-modal input::placeholder {
+  color: #b8b8b8 !important;
+  opacity: 1;
+}
+
+#auth-overlay input:-webkit-autofill,
+#game-root input:-webkit-autofill,
+.game-modal input:-webkit-autofill {
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+#auth-overlay button.primary:hover:not(:disabled),
+#auth-overlay button.ghost:hover:not(:disabled) {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.35);
+}
+
+/* 冷峻 hover：背景略亮 + 白字外發光（優先於內嵌 hover 米色） */
+#game-root button.action:hover:not(:disabled),
+#game-root button.send-custom:hover:not(:disabled),
+#game-root button.header-btn:hover:not(:disabled),
+#game-root button.btn-realm-shuttle:hover:not(:disabled),
+#game-root button.name-link:hover span {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 0 22px rgba(255, 255, 255, 0.18);
+}
+
+#game-root button.action:hover:not(:disabled) {
+  background: #1c1c1c !important;
+}
+
+#game-root button.send-custom:hover:not(:disabled) {
+  background: #3a3a3a !important;
+  border-color: #6a6a6a !important;
+}
+
+#game-root button.header-btn:hover:not(:disabled) {
+  background: #181818 !important;
+}
+
+#game-root button.btn-realm-shuttle:hover:not(:disabled) {
+  background: #121212 !important;
+}
+
+.game-modal button.quest-card-action:hover:not(:disabled),
+.game-modal button.quest-roster-close-btn:hover,
+.game-modal button.inv-item-hit:hover:not(:disabled),
+.game-modal button.ma-btn-cultivate:hover:not(:disabled),
+.game-modal button.ma-btn-abandon:hover:not(:disabled),
+.game-modal button.ma-card-expand:hover:not(:disabled),
+.game-modal button.cp-card-expand:hover:not(:disabled),
+.game-modal .cp-btn-talk:hover:not(:disabled),
+.game-modal .cp-btn-order:hover:not(:disabled),
+.game-modal button.game-modal-choice-btn:hover:not(:disabled) {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.4), 0 0 20px rgba(255, 255, 255, 0.12);
+}
+
+.game-modal .game-modal-x:hover {
+  color: #ffffff !important;
+  text-shadow: 0 0 12px rgba(255, 255, 255, 0.45);
+  background: rgba(36, 36, 36, 0.95) !important;
+  border-color: #666666 !important;
+}
+
+button.realm-shuttle-option:hover:not(:disabled) {
+  color: #ffffff !important;
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.42);
+  background: #1a1a1a !important;
+}
+
+.quest-causal-shift {
+  color: #ffffff !important;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.35);
+}
+
+@media (max-width: 720px) {
+  footer.actions {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-list {
+    grid-template-columns: 1fr;
+  }
+}

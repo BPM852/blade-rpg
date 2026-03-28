@@ -1,0 +1,4189 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>刃界錄 — Blade 風文字 RPG</title>
+  <style>
+    :root {
+      --bg: #000000;
+      --gold: #c9a85c;
+      --gold-dim: #8a7640;
+      --gold-glow: rgba(201, 168, 92, 0.35);
+      --border: #3a3220;
+      --font: "Georgia", "Times New Roman", "Noto Serif TC", serif;
+      --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--gold);
+      font-family: var(--font);
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+    .hidden {
+      display: none !important;
+    }
+    .auth-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: rgba(0, 0, 0, 0.92);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .auth-overlay.hidden {
+      display: none !important;
+    }
+    .auth-card {
+      width: 100%;
+      max-width: 380px;
+      border: 1px solid var(--border);
+      background: #0a0a0a;
+      padding: 1.35rem 1.5rem 1.5rem;
+      box-shadow: 0 0 40px var(--gold-glow);
+    }
+    .auth-card h2 {
+      margin: 0 0 0.35rem;
+      font-size: 1rem;
+      letter-spacing: 0.45em;
+      font-weight: 400;
+      color: var(--gold-dim);
+      text-align: center;
+    }
+    .auth-card .sub {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--gold-dim);
+      margin-bottom: 1.1rem;
+      letter-spacing: 0.15em;
+    }
+    .auth-field {
+      margin-bottom: 0.75rem;
+    }
+    .auth-field label {
+      display: block;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: var(--gold-dim);
+      margin-bottom: 0.35rem;
+    }
+    .auth-field input {
+      width: 100%;
+      background: #2d2d2d;
+      border: 1px solid #454545;
+      border-radius: 4px;
+      color: var(--gold);
+      padding: 0.5rem 0.65rem;
+      font-family: inherit;
+      font-size: 0.88rem;
+    }
+    .auth-field input::placeholder {
+      color: var(--gold-dim);
+      opacity: 0.85;
+    }
+    .auth-field input:focus {
+      outline: none;
+      border-color: var(--gold-dim);
+    }
+    .auth-actions {
+      margin-top: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .auth-actions button.primary {
+      background: #1a150c;
+      color: var(--gold);
+      border: 1px solid var(--border);
+      padding: 0.6rem;
+      font-family: inherit;
+      font-size: 0.8rem;
+      letter-spacing: 0.25em;
+      cursor: pointer;
+    }
+    .auth-actions button.primary:hover {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 14px var(--gold-glow);
+    }
+    .auth-actions button.ghost {
+      background: transparent;
+      border: none;
+      color: var(--gold-dim);
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      padding: 0.35rem;
+    }
+    .auth-actions button.ghost:hover {
+      color: var(--gold);
+    }
+    #auth-error {
+      color: #c08060;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      min-height: 1.2em;
+      margin-bottom: 0.5rem;
+    }
+    #game-root {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+    }
+    header {
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      letter-spacing: 0.35em;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      color: var(--gold-dim);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    header .title-block {
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    header strong {
+      color: var(--gold);
+      font-weight: 400;
+    }
+    header .player-tag {
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: none;
+      color: var(--gold-dim);
+    }
+    header .player-tag span {
+      color: var(--gold);
+    }
+    header .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      flex-wrap: wrap;
+    }
+    header button.header-btn {
+      background: #0c0a06;
+      border: 1px solid var(--border);
+      color: var(--gold-dim);
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      padding: 0.38rem 0.55rem;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    header button.header-btn:hover {
+      color: var(--gold);
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 10px var(--gold-glow);
+    }
+    header button.header-btn.bingjie {
+      color: #9a3a3a;
+      border: 1px solid #5a2a2a;
+    }
+    header button.header-btn.bingjie:hover {
+      color: #c45c5c;
+      border-color: #7a3535;
+    }
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr minmax(200px, 260px);
+      gap: 0;
+      min-height: 0;
+    }
+    @media (max-width: 800px) {
+      main { grid-template-columns: 1fr; }
+    }
+    .panel {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    @media (max-width: 800px) {
+      .panel { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+    .panel-head {
+      padding: 0.5rem 1rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.28em;
+      color: var(--gold-dim);
+      border-bottom: 1px solid var(--border);
+    }
+    .story-panel {
+      min-height: 0;
+    }
+    .story-panel-body {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    /* 與 style.css 一致：劇情區為 1/3 基礎的 2 倍字級；line-height 1.6 */
+    .story-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.25rem 1.2rem;
+      line-height: 1.6;
+      font-size: clamp(0.746rem, 1.566vw, 1.146rem);
+      text-shadow: 0 0 24px var(--gold-glow);
+      white-space: pre-wrap;
+      word-break: break-word;
+      scroll-behavior: smooth;
+    }
+    .story-scroll:empty::before {
+      content: "黑幕未揭。選一刃，或自書一行命數。";
+      color: var(--gold-dim);
+    }
+    .story-scroll .story-user-line {
+      line-height: 1.6;
+      font-size: 1em;
+      color: var(--gold-dim);
+      letter-spacing: 0.06em;
+      margin-bottom: 1.45em;
+      padding: 0.35rem 0 0.35rem 0.55rem;
+      border-left: 2px solid rgba(201, 168, 92, 0.35);
+      white-space: pre-wrap;
+    }
+    .story-chronicle-divider {
+      height: 0;
+      margin: 0.75rem 0 0.95rem;
+      border: none;
+      border-top: 1px solid rgba(212, 175, 55, 0.42);
+      box-shadow: 0 0 14px rgba(201, 168, 92, 0.18);
+    }
+    .story-segment {
+      border-bottom: none;
+      padding-bottom: 0.35rem;
+      margin-bottom: 0.25rem;
+    }
+    .story-segment:last-of-type {
+      margin-bottom: 0.35rem;
+      padding-bottom: 0.5rem;
+    }
+    .story-segment-body {
+      white-space: pre-wrap;
+    }
+    .story-segment-body--rich {
+      white-space: normal;
+    }
+    .story-scroll.story-scroll--tw-skip {
+      cursor: pointer;
+    }
+    .story-segment-body--typing {
+      min-height: 1.6em;
+      line-height: 1.6;
+    }
+    @keyframes story-tw-tail-in {
+      from { opacity: 0.28; }
+      to { opacity: 1; }
+    }
+    .story-tw-tail {
+      display: inline;
+      animation: story-tw-tail-in 0.2s ease-out forwards;
+      opacity: 0.28;
+    }
+    .story-choices.story-choices--await-reveal {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .story-choices.story-choices--fade-reveal {
+      opacity: 1;
+      pointer-events: auto;
+      transition: opacity 0.42s ease-out;
+    }
+    .game-root--tw-skip {
+      cursor: pointer;
+    }
+    .story-choices {
+      flex-shrink: 0;
+      margin-top: 0.25rem;
+      padding: 0.85rem 1.25rem 1.05rem;
+      border-top: 1px solid rgba(201, 168, 92, 0.28);
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .story-choices:empty {
+      display: none;
+      padding: 0;
+      border-top: none;
+    }
+    button.story-choice-btn {
+      text-align: left;
+      background: #0c0a06;
+      color: var(--gold);
+      border: 1px solid var(--border);
+      padding: 0.55rem 0.65rem;
+      font-family: inherit;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      line-height: 1.45;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    button.story-choice-btn:hover:not(:disabled) {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 14px var(--gold-glow);
+      color: #e4d4a8;
+    }
+    button.story-choice-btn:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+    button.story-choice-btn--tagged {
+      color: #f8f6f2 !important;
+      font-weight: 800;
+      border-color: rgba(255, 240, 200, 0.45);
+      box-shadow: 0 0 12px rgba(255, 220, 160, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    button.story-choice-btn--tagged:hover:not(:disabled) {
+      border-color: rgba(255, 235, 190, 0.65);
+      box-shadow: 0 0 16px rgba(255, 220, 160, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+    aside.stats {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+    .stat-list {
+      padding: 1rem;
+      flex: 1;
+      overflow-y: auto;
+    }
+    .stat-row {
+      margin-bottom: 1rem;
+    }
+    .stat-row--sidebar-meta {
+      margin-bottom: 0.72rem;
+    }
+    .stat-rank-line {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.28rem;
+      max-width: 72%;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+    }
+    .rank-core-hint {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 0.95rem;
+      height: 0.95rem;
+      border-radius: 50%;
+      border: 1px solid var(--border);
+      color: var(--gold-dim);
+      font-size: 0.58rem;
+      font-weight: 800;
+      font-style: italic;
+      cursor: help;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    .rank-core-hint:hover {
+      color: var(--gold);
+      border-color: var(--gold-dim);
+    }
+    .stat-mental-heading {
+      font-weight: 900;
+    }
+    .stat-row label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      color: var(--gold-dim);
+      margin-bottom: 0.35rem;
+    }
+    .stat-row label span.val {
+      color: var(--gold);
+      font-family: var(--mono);
+      font-size: 0.8rem;
+    }
+    .bar {
+      height: 4px;
+      background: #1a150c;
+      border: 1px solid var(--border);
+    }
+    .bar > i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dim), var(--gold));
+      box-shadow: 0 0 12px var(--gold-glow);
+      width: 0%;
+      transition: width 0.45s ease;
+    }
+    footer.actions {
+      border-top: 1px solid var(--border);
+      padding: 0.85rem 1rem 1.1rem;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+    }
+    @media (max-width: 640px) {
+      footer.actions { grid-template-columns: repeat(2, 1fr); }
+    }
+    button.action {
+      background: #0c0a06;
+      color: var(--gold);
+      border: 1px solid var(--border);
+      padding: 0.65rem 0.4rem;
+      font-family: inherit;
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    button.action:hover:not(:disabled) {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 16px var(--gold-glow);
+      color: #e4d4a8;
+    }
+    button.action:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+    .btn-realm-shuttle {
+      width: 100%;
+      margin-top: 0.35rem;
+      padding: 0.85rem 0.65rem;
+      background: #0a0804;
+      color: var(--gold);
+      border: 1px solid var(--border);
+      font-family: inherit;
+      font-size: clamp(0.95rem, 2.6vw, 1.15rem);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    .btn-realm-shuttle:hover:not(:disabled) {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 18px var(--gold-glow);
+      color: #f0e6c8;
+    }
+    .btn-realm-shuttle:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+    .realm-shuttle-sheet {
+      max-width: min(94vw, 520px);
+      max-height: min(88vh, 640px);
+      display: flex;
+      flex-direction: column;
+    }
+    .realm-shuttle-h {
+      font-size: clamp(1.1rem, 3.2vw, 1.45rem);
+      color: var(--gold);
+      letter-spacing: 0.12em;
+      margin: 0 0 0.5rem 0;
+      padding-right: 2rem;
+    }
+    .realm-shuttle-sub {
+      margin: 0 0 1rem 0;
+      font-size: 0.78rem;
+      color: var(--gold-dim);
+      line-height: 1.5;
+      letter-spacing: 0.06em;
+    }
+    .realm-shuttle-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      overflow-y: auto;
+      flex: 1;
+      padding-right: 0.15rem;
+    }
+    button.realm-shuttle-option {
+      width: 100%;
+      text-align: left;
+      padding: 0.85rem 1rem;
+      background: #080705;
+      color: #e8d5a3;
+      border: 1px solid rgba(201, 162, 39, 0.35);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: clamp(0.88rem, 2.4vw, 1.02rem);
+      line-height: 1.45;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    button.realm-shuttle-option:hover:not(:disabled) {
+      border-color: var(--gold-dim);
+      background: #12100a;
+      box-shadow: 0 0 14px var(--gold-glow);
+    }
+    button.realm-shuttle-option:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+    .realm-shuttle-option-title {
+      display: block;
+      color: var(--gold);
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+    .realm-shuttle-option-hint {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--gold-dim);
+    }
+    .custom-action-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      border-top: 1px solid var(--border);
+      background: #050505;
+    }
+    .custom-action-row input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      background: #2d2d2d;
+      border: 1px solid #454545;
+      border-radius: 4px;
+      color: var(--gold);
+      padding: 0.55rem 0.75rem;
+      font-family: inherit;
+      font-size: 0.88rem;
+    }
+    .custom-action-row input[type="text"]::placeholder {
+      color: var(--gold-dim);
+      opacity: 0.9;
+    }
+    .custom-action-row input[type="text"]:focus {
+      outline: none;
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 0 1px rgba(201, 168, 92, 0.2);
+    }
+    .custom-action-row input[type="text"]:disabled {
+      opacity: 0.5;
+      cursor: wait;
+    }
+    button.send-custom {
+      flex-shrink: 0;
+      padding: 0.55rem 1rem;
+      background: #2d2d2d;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--gold);
+      font-family: inherit;
+      font-size: 0.78rem;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    button.send-custom:hover:not(:disabled) {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 12px var(--gold-glow);
+      color: #e4d4a8;
+    }
+    button.send-custom:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+    .err {
+      color: #c08060;
+      font-size: 0.8rem;
+      padding: 0 1rem 0.75rem;
+      font-family: var(--mono);
+    }
+    button.name-link {
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      cursor: pointer;
+      font: inherit;
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: var(--gold-dim);
+    }
+    button.name-link:hover span {
+      color: #e4d4a8;
+    }
+    .game-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .game-modal.hidden {
+      display: none !important;
+    }
+    .game-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+    }
+    .game-modal-sheet {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: min(520px, 100%);
+      max-height: min(72vh, 640px);
+      display: flex;
+      flex-direction: column;
+      background: rgba(12, 10, 8, 0.94);
+      border: 1px solid var(--gold-dim);
+      box-shadow: 0 0 32px var(--gold-glow);
+    }
+    .game-modal-x {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.55rem;
+      z-index: 2;
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.5);
+      color: var(--gold-dim);
+      font-size: 1.35rem;
+      line-height: 1;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .game-modal-x:hover {
+      color: var(--gold);
+      border-color: var(--gold-dim);
+    }
+    .game-modal-title {
+      margin: 0;
+      padding: 0.85rem 2.5rem 0.5rem 1rem;
+      font-size: 0.72rem;
+      letter-spacing: 0.35em;
+      font-weight: 400;
+      color: var(--gold-dim);
+      border-bottom: 1px solid var(--border);
+    }
+    .game-modal-loading {
+      padding: 0.65rem 1rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.2em;
+      color: var(--gold-dim);
+      animation: pulse-op 1.2s ease-in-out infinite;
+    }
+    .game-modal-loading.hidden {
+      display: none !important;
+    }
+    @keyframes pulse-op {
+      0%, 100% { opacity: 0.55; }
+      50% { opacity: 1; }
+    }
+    .game-modal-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.1rem 0.65rem;
+      font-size: 0.9rem;
+      line-height: 1.7;
+      color: var(--gold);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .game-modal-body--rich {
+      white-space: normal;
+    }
+    .game-modal-choices {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      padding: 0.35rem 1rem 1.2rem;
+      flex-shrink: 0;
+      border-top: 1px solid rgba(58, 50, 32, 0.6);
+    }
+    .game-modal-choices:empty {
+      display: none;
+      padding: 0;
+      border-top: none;
+    }
+    button.game-modal-choice-btn {
+      text-align: left;
+      background: #0c0a06;
+      color: var(--gold);
+      border: 1px solid var(--border);
+      padding: 0.55rem 0.65rem;
+      font-family: inherit;
+      font-size: 0.78rem;
+      letter-spacing: 0.04em;
+      line-height: 1.45;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    button.game-modal-choice-btn:hover:not(:disabled) {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 14px var(--gold-glow);
+      color: #e4d4a8;
+    }
+    button.game-modal-choice-btn:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+    button.game-modal-choice-btn--tagged {
+      color: #f8f6f2 !important;
+      font-weight: 800;
+      border-color: rgba(255, 240, 200, 0.45);
+      box-shadow: 0 0 12px rgba(255, 220, 160, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    button.game-modal-choice-btn--tagged:hover:not(:disabled) {
+      border-color: rgba(255, 235, 190, 0.65);
+      box-shadow: 0 0 16px rgba(255, 220, 160, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+    }
+    .quest-roster-modal .quest-roster-backdrop {
+      background: rgba(4, 3, 2, 0.52);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    .quest-roster-modal .quest-roster-sheet {
+      max-width: min(640px, 96vw);
+      max-height: min(78vh, 880px);
+      background: rgba(12, 10, 8, 0.78);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-color: rgba(201, 168, 92, 0.42);
+      box-shadow: 0 12px 48px rgba(0, 0, 0, 0.5), 0 0 36px rgba(201, 168, 92, 0.1);
+    }
+    .quest-roster-head {
+      padding: 0.75rem 2.4rem 0.4rem 1rem;
+      border-bottom: 1px solid rgba(58, 50, 32, 0.55);
+    }
+    .quest-roster-title {
+      margin: 0;
+      font-size: 0.76rem;
+      font-weight: 500;
+      letter-spacing: 0.28em;
+      color: var(--gold);
+      line-height: 1.45;
+    }
+    .quest-roster-sub {
+      margin: 0.2rem 0 0;
+      font-size: 0.68rem;
+      letter-spacing: 0.42em;
+      color: rgba(201, 168, 92, 0.72);
+      line-height: 1.4;
+    }
+    .quest-roster-mount {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 0.65rem 0.85rem 0.5rem;
+    }
+    .quest-roster-mount.hidden {
+      display: none !important;
+    }
+    .quest-roster-empty {
+      margin: 0.5rem 0;
+      font-size: 0.82rem;
+      color: rgba(201, 168, 92, 0.65);
+      letter-spacing: 0.12em;
+      line-height: 1.6;
+    }
+    .quest-card {
+      display: flex;
+      align-items: stretch;
+      gap: 0.55rem;
+      margin-bottom: 0.5rem;
+      padding: 0.48rem 0.55rem 0.48rem 0;
+      background: rgba(26, 24, 22, 0.92);
+      border: 1px solid rgba(72, 66, 52, 0.45);
+      border-radius: 0.32rem;
+    }
+    .quest-card-stripe {
+      width: 0.24rem;
+      min-width: 0.24rem;
+      align-self: stretch;
+      border-radius: 0.24rem 0 0 0.24rem;
+    }
+    .quest-card-stripe--main {
+      background: linear-gradient(180deg, #d4b86a, #9a7d3d);
+      box-shadow: 0 0 10px rgba(212, 184, 106, 0.25);
+    }
+    .quest-card-stripe--side {
+      background: linear-gradient(180deg, #8ec8e0, #4f7a92);
+      box-shadow: 0 0 8px rgba(120, 180, 210, 0.2);
+    }
+    .quest-card-core {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.28rem;
+      padding-right: 0.2rem;
+    }
+    .quest-card-title-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.25rem 0.45rem;
+    }
+    .quest-card-name {
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--gold);
+      letter-spacing: 0.06em;
+      line-height: 1.4;
+    }
+    .quest-causal-shift {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #c04040;
+      letter-spacing: 0.08em;
+      white-space: nowrap;
+    }
+    .quest-causal-shift[hidden] {
+      display: none !important;
+    }
+    .quest-card-desc {
+      margin: 0;
+      font-size: 0.8rem;
+      line-height: 1.55;
+      color: rgba(228, 212, 168, 0.88);
+      letter-spacing: 0.03em;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    button.quest-card-action {
+      flex-shrink: 0;
+      align-self: center;
+      min-width: 3.2rem;
+      padding: 0.42rem 0.55rem;
+      font-family: inherit;
+      font-size: 0.74rem;
+      letter-spacing: 0.12em;
+      line-height: 1.35;
+      color: var(--gold-dim);
+      background: rgba(8, 7, 5, 0.85);
+      border: 1px solid rgba(120, 108, 80, 0.55);
+      border-radius: 0.22rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+    }
+    button.quest-card-action:hover:not(:disabled) {
+      border-color: var(--gold-dim);
+      color: #e4d4a8;
+      box-shadow: 0 0 12px var(--gold-glow);
+    }
+    button.quest-card-action:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+    .quest-roster-footer {
+      flex-shrink: 0;
+      padding: 0.45rem 0.85rem 1rem;
+      border-top: 1px solid rgba(58, 50, 32, 0.5);
+    }
+    button.quest-roster-close-btn {
+      display: block;
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.58rem 0.75rem;
+      font-family: inherit;
+      font-size: 0.8rem;
+      letter-spacing: 0.35em;
+      text-indent: 0.35em;
+      color: var(--gold);
+      background: rgba(14, 12, 10, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 0.28rem;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    button.quest-roster-close-btn:hover {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 16px var(--gold-glow);
+    }
+    .inv-modal-backdrop {
+      background: rgba(4, 3, 2, 0.82);
+    }
+    .inv-sheet {
+      max-width: min(440px, 100%);
+      background: rgba(10, 8, 6, 0.88);
+      border-color: rgba(201, 168, 92, 0.45);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55), 0 0 28px rgba(201, 168, 92, 0.12);
+    }
+    .inv-modal-h {
+      margin: 0;
+      padding: 0.85rem 2.5rem 0.45rem 1rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.42em;
+      font-weight: 500;
+      color: rgba(212, 195, 150, 0.92);
+      border-bottom: 1px solid rgba(201, 168, 92, 0.22);
+    }
+    .inv-modal-mount {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.65rem 0.9rem 1rem;
+      min-height: 120px;
+      max-height: min(58vh, 520px);
+    }
+    .inv-modal-mount.hidden {
+      display: none !important;
+    }
+    .inv-cat-block {
+      margin-bottom: 1rem;
+    }
+    .inv-cat-head {
+      font-size: 0.7rem;
+      letter-spacing: 0.22em;
+      color: rgba(212, 195, 150, 0.88);
+      margin: 0 0 0.45rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px dashed rgba(201, 168, 92, 0.2);
+    }
+    .inv-item-row {
+      padding: 0.42rem 0;
+      border-bottom: 1px dashed rgba(201, 168, 92, 0.14);
+    }
+    .inv-item-row:last-child {
+      border-bottom: none;
+    }
+    .inv-item-line {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 0.35rem 0.5rem;
+    }
+    button.inv-item-hit {
+      background: transparent;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      color: #f2f0ea;
+      text-align: left;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(201, 168, 92, 0.35);
+      transition: color 0.15s, text-decoration-color 0.15s, transform 0.08s;
+    }
+    button.inv-item-hit:hover:not(:disabled) {
+      color: #fff;
+      text-decoration-color: rgba(212, 195, 150, 0.65);
+    }
+    button.inv-item-hit:active:not(:disabled) {
+      transform: scale(0.98);
+      color: rgba(255, 248, 230, 0.95);
+    }
+    button.inv-item-hit:disabled {
+      opacity: 0.4;
+      cursor: wait;
+    }
+    .inv-item-static {
+      color: #f2f0ea;
+      font-size: 0.86rem;
+    }
+    .inv-item-meta {
+      font-size: 0.72rem;
+      color: rgba(200, 190, 170, 0.75);
+    }
+    .inv-equipped-tag {
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #6dffb0;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 12px rgba(80, 220, 140, 0.35);
+    }
+    .inv-item-desc {
+      font-size: 0.72rem;
+      color: rgba(210, 200, 180, 0.65);
+      margin-top: 0.2rem;
+      line-height: 1.45;
+    }
+    .inv-empty {
+      font-size: 0.78rem;
+      color: rgba(180, 170, 150, 0.5);
+      letter-spacing: 0.12em;
+      padding: 0.35rem 0;
+    }
+    .rename-modal-field {
+      padding: 0 1rem 1rem;
+    }
+    .rename-modal-field input {
+      width: 100%;
+      background: #2d2d2d;
+      border: 1px solid #454545;
+      color: var(--gold);
+      padding: 0.5rem 0.65rem;
+      font-family: inherit;
+      font-size: 0.88rem;
+    }
+    .rename-modal-actions {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0 1rem 1rem;
+    }
+    .rename-modal-actions button {
+      flex: 1;
+      padding: 0.5rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #1a150c;
+      color: var(--gold);
+    }
+    #reg-wait-hint {
+      font-size: 0.68rem;
+      color: var(--gold-dim);
+      text-align: center;
+      min-height: 1.2em;
+      margin-top: 0.35rem;
+      letter-spacing: 0.08em;
+    }
+    .game-confirm-root {
+      position: fixed;
+      inset: 0;
+      z-index: 12000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .game-confirm-root.hidden {
+      display: none !important;
+    }
+    .game-confirm-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+    .game-confirm-card {
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: min(380px, 100%);
+      padding: 1.35rem 1.25rem 1.15rem;
+      background: rgba(8, 6, 4, 0.92);
+      border: 1px solid rgba(201, 168, 92, 0.55);
+      box-shadow: 0 0 36px rgba(201, 168, 92, 0.12), 0 12px 48px rgba(0, 0, 0, 0.65);
+      font-family: "BiauKai", "DFKai-SB", "標楷體", "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif;
+    }
+    .game-confirm-msg {
+      margin: 0 0 1.25rem;
+      font-size: 0.88rem;
+      line-height: 1.75;
+      letter-spacing: 0.12em;
+      color: rgba(212, 195, 150, 0.95);
+      text-align: center;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .game-confirm-actions {
+      display: flex;
+      flex-direction: row;
+      gap: 0.65rem;
+      justify-content: center;
+    }
+    button.game-confirm-btn {
+      flex: 1;
+      max-width: 140px;
+      padding: 0.55rem 0.75rem;
+      font-family: inherit;
+      font-size: 0.74rem;
+      letter-spacing: 0.22em;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.08s;
+    }
+    button.game-confirm-btn:active {
+      transform: scale(0.98);
+    }
+    button.game-confirm-ok {
+      background: #1a150c;
+      color: var(--gold);
+    }
+    button.game-confirm-ok:hover {
+      border-color: var(--gold-dim);
+      box-shadow: 0 0 14px var(--gold-glow);
+      color: #e4d4a8;
+    }
+    button.game-confirm-cancel {
+      background: rgba(0, 0, 0, 0.45);
+      color: var(--gold-dim);
+    }
+    button.game-confirm-cancel:hover {
+      border-color: rgba(201, 168, 92, 0.35);
+      color: var(--gold);
+    }
+    .ma-modal-backdrop {
+      background: rgba(4, 3, 2, 0.82);
+    }
+    .ma-sheet {
+      max-width: min(460px, 100%);
+      background: rgba(10, 8, 6, 0.9);
+      border-color: rgba(201, 168, 92, 0.42);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55), 0 0 26px rgba(201, 168, 92, 0.1);
+    }
+    .ma-modal-h {
+      margin: 0;
+      padding: 0.85rem 2.5rem 0.45rem 1rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.42em;
+      font-weight: 500;
+      color: rgba(212, 195, 150, 0.92);
+      border-bottom: 1px solid rgba(201, 168, 92, 0.22);
+    }
+    .ma-modal-mount {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.65rem 0.85rem 1rem;
+      min-height: 120px;
+      max-height: min(58vh, 540px);
+    }
+    .ma-modal-mount.hidden {
+      display: none !important;
+    }
+    .ma-cat-block {
+      margin-bottom: 1.05rem;
+    }
+    .ma-cat-head {
+      font-size: 0.7rem;
+      letter-spacing: 0.22em;
+      color: rgba(212, 195, 150, 0.88);
+      margin: 0 0 0.5rem;
+      padding-bottom: 0.25rem;
+      border-bottom: 1px dashed rgba(201, 168, 92, 0.22);
+    }
+    .ma-skill-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .ma-skill-card {
+      padding: 0.6rem 0.7rem 0.55rem;
+      background: rgba(0, 0, 0, 0.48);
+      border: 1px solid rgba(201, 168, 92, 0.14);
+      border-radius: 6px;
+    }
+    .ma-skill-list .ma-skill-card:not(:last-child) {
+      margin-bottom: 0.55rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid rgba(201, 168, 92, 0.1);
+    }
+    button.ma-card-expand {
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      color: inherit;
+      transition: opacity 0.15s;
+    }
+    button.ma-card-expand:hover:not(:disabled) {
+      opacity: 0.92;
+    }
+    button.ma-card-expand:disabled {
+      cursor: wait;
+      opacity: 0.5;
+    }
+    .ma-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.55rem;
+      width: 100%;
+    }
+    .ma-skill-name--title {
+      font-size: 0.88rem;
+      letter-spacing: 0.08em;
+      flex: 1;
+      min-width: 0;
+      color: rgba(212, 195, 150, 0.96);
+      font-weight: 500;
+    }
+    .ma-fusion-badge {
+      flex-shrink: 0;
+      font-size: 0.62rem;
+      letter-spacing: 0.12em;
+      padding: 0.28rem 0.5rem;
+      border-radius: 6px;
+      color: rgba(240, 215, 180, 0.92);
+      background: rgba(90, 50, 55, 0.35);
+      border: 1px solid rgba(201, 168, 92, 0.28);
+      white-space: nowrap;
+    }
+    .ma-realm {
+      flex-shrink: 0;
+      font-size: 0.62rem;
+      letter-spacing: 0.1em;
+      padding: 0.28rem 0.5rem;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      white-space: nowrap;
+    }
+    .ma-realm--low {
+      color: #b8ece4;
+      background: rgba(45, 95, 92, 0.28);
+      border-color: rgba(100, 190, 175, 0.42);
+    }
+    .ma-realm--mid {
+      color: #d8c0ff;
+      background: rgba(75, 45, 115, 0.32);
+      border-color: rgba(150, 95, 210, 0.45);
+    }
+    .ma-realm--high {
+      color: #ffe8a8;
+      background: rgba(140, 100, 35, 0.32);
+      border-color: rgba(230, 185, 75, 0.55);
+    }
+    .ma-grade-badge {
+      flex-shrink: 0;
+      font-size: 0.58rem;
+      letter-spacing: 0.06em;
+      padding: 0.22rem 0.45rem;
+      border-radius: 5px;
+      color: rgba(255, 220, 160, 0.95);
+      background: rgba(120, 60, 30, 0.35);
+      border: 1px solid rgba(220, 140, 80, 0.4);
+      white-space: nowrap;
+    }
+    .ma-origin-badge {
+      flex-shrink: 0;
+      font-size: 0.55rem;
+      letter-spacing: 0.12em;
+      padding: 0.22rem 0.4rem;
+      border-radius: 5px;
+      color: rgba(180, 210, 255, 0.92);
+      background: rgba(40, 70, 120, 0.35);
+      border: 1px solid rgba(100, 150, 220, 0.38);
+      white-space: nowrap;
+    }
+    .ma-subhead {
+      margin: 0.5rem 0 0.35rem;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      color: rgba(200, 180, 130, 0.75);
+      font-weight: 500;
+    }
+    .ma-subhead:first-of-type {
+      margin-top: 0.15rem;
+    }
+    .ma-fusion-bar {
+      height: 4px;
+      margin-top: 0.25rem;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .ma-fusion-bar > i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, rgba(180, 60, 70, 0.9), rgba(212, 168, 92, 0.85));
+      border-radius: 2px;
+    }
+    .ma-skill-desc {
+      font-size: 0.72rem;
+      color: rgba(160, 155, 148, 0.82);
+      line-height: 1.5;
+      margin-top: 0.4rem;
+    }
+    .ma-skill-desc.ma-desc-placeholder {
+      color: rgba(130, 125, 118, 0.55);
+      font-style: italic;
+      letter-spacing: 0.06em;
+    }
+    .ma-skill-actions {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 0;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.38s ease, opacity 0.28s ease, margin-top 0.28s ease;
+    }
+    .ma-skill-actions.ma-open {
+      max-height: 3.2rem;
+      opacity: 1;
+      margin-top: 0.55rem;
+      padding-top: 0.35rem;
+      border-top: 1px dashed rgba(201, 168, 92, 0.12);
+    }
+    button.ma-btn-abandon {
+      flex: 1;
+      padding: 0.45rem 0.5rem;
+      font-family: inherit;
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      cursor: pointer;
+      border: 1px solid rgba(80, 80, 80, 0.6);
+      background: rgba(26, 26, 26, 0.95);
+      color: rgba(160, 155, 145, 0.9);
+      transition: border-color 0.2s, color 0.2s, transform 0.08s;
+    }
+    button.ma-btn-abandon:hover:not(:disabled) {
+      border-color: rgba(140, 130, 120, 0.5);
+      color: #c8c0b0;
+    }
+    button.ma-btn-cultivate {
+      width: 100%;
+      flex: none;
+      padding: 0.5rem 0.55rem;
+      font-family: inherit;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      border: 1px solid rgba(200, 55, 60, 0.85);
+      background: rgba(48, 12, 16, 0.98);
+      color: #ff5c5c;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s, transform 0.08s;
+    }
+    button.ma-btn-cultivate:hover:not(:disabled) {
+      border-color: rgba(255, 100, 105, 0.75);
+      box-shadow: 0 0 16px rgba(220, 50, 55, 0.35);
+      color: #ff9090;
+    }
+    button.ma-btn-abandon:active,
+    button.ma-btn-cultivate:active {
+      transform: scale(0.98);
+    }
+    button.ma-btn-abandon:disabled,
+    button.ma-btn-cultivate:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+    .ma-empty {
+      font-size: 0.78rem;
+      color: rgba(180, 170, 150, 0.5);
+      letter-spacing: 0.12em;
+      padding: 0.35rem 0;
+    }
+    .co-modal-backdrop {
+      background: rgba(4, 3, 2, 0.82);
+    }
+    .co-sheet {
+      max-width: min(480px, 100%);
+      background: rgba(10, 8, 6, 0.9);
+      border-color: rgba(201, 168, 92, 0.42);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.55), 0 0 26px rgba(201, 168, 92, 0.1);
+    }
+    .co-modal-h {
+      margin: 0;
+      padding: 0.85rem 2.5rem 0.45rem 1rem;
+      font-size: 0.78rem;
+      letter-spacing: 0.42em;
+      font-weight: 500;
+      color: rgba(212, 195, 150, 0.92);
+      border-bottom: 1px solid rgba(201, 168, 92, 0.22);
+    }
+    .co-modal-mount {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0.65rem 0.85rem 1rem;
+      min-height: 120px;
+      max-height: min(58vh, 560px);
+    }
+    .co-modal-mount.hidden {
+      display: none !important;
+    }
+    .cp-skill-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .cp-companion-card {
+      padding: 0.62rem 0.72rem 0.55rem;
+      background: rgba(0, 0, 0, 0.48);
+      border: 1px solid rgba(201, 168, 92, 0.14);
+      border-radius: 6px;
+    }
+    .cp-skill-list .cp-companion-card:not(:last-child) {
+      margin-bottom: 0.55rem;
+      padding-bottom: 0.58rem;
+      border-bottom: 1px solid rgba(201, 168, 92, 0.1);
+    }
+    button.cp-card-expand {
+      display: block;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      color: inherit;
+      transition: opacity 0.15s;
+    }
+    button.cp-card-expand:hover:not(:disabled) {
+      opacity: 0.92;
+    }
+    button.cp-card-expand:disabled {
+      cursor: wait;
+      opacity: 0.5;
+    }
+    .cp-name {
+      font-size: 0.92rem;
+      letter-spacing: 0.1em;
+      font-weight: 500;
+      color: rgba(230, 210, 165, 0.98);
+      line-height: 1.35;
+    }
+    .cp-title-line {
+      margin-top: 0.2rem;
+      font-size: 0.68rem;
+      letter-spacing: 0.18em;
+      color: rgba(212, 190, 140, 0.72);
+      line-height: 1.45;
+    }
+    .cp-favor-label {
+      margin-top: 0.45rem;
+      font-size: 0.62rem;
+      letter-spacing: 0.14em;
+      color: rgba(185, 170, 135, 0.75);
+    }
+    .cp-favor-bar {
+      height: 5px;
+      margin-top: 0.22rem;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .cp-favor-bar > i {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, rgba(100, 75, 140, 0.95), rgba(212, 168, 92, 0.88));
+      border-radius: 2px;
+    }
+    .cp-status-line {
+      margin-top: 0.48rem;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      color: rgba(200, 175, 155, 0.88);
+    }
+    .cp-desc {
+      margin-top: 0.28rem;
+      font-size: 0.7rem;
+      line-height: 1.5;
+      color: rgba(155, 150, 142, 0.82);
+    }
+    .cp-visual-line {
+      margin-top: 0.32rem;
+      font-size: 0.65rem;
+      line-height: 1.45;
+      font-style: italic;
+      letter-spacing: 0.06em;
+      color: rgba(140, 155, 165, 0.72);
+    }
+    .cp-ability-line {
+      margin-top: 0.3rem;
+      font-size: 0.64rem;
+      line-height: 1.45;
+      color: rgba(175, 140, 120, 0.78);
+      letter-spacing: 0.04em;
+    }
+    .cp-companion-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin-top: 0;
+      max-height: 0;
+      overflow: hidden;
+      opacity: 0;
+      transition: max-height 0.38s ease, opacity 0.28s ease, margin-top 0.28s ease;
+    }
+    .cp-companion-actions.cp-open {
+      max-height: 6.5rem;
+      opacity: 1;
+      margin-top: 0.52rem;
+      padding-top: 0.38rem;
+      border-top: 1px dashed rgba(201, 168, 92, 0.12);
+    }
+    button.cp-btn-talk {
+      flex: 1;
+      min-width: 42%;
+      padding: 0.48rem 0.5rem;
+      font-family: inherit;
+      font-size: 0.66rem;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      border: 1px solid rgba(201, 168, 92, 0.45);
+      background: rgba(28, 22, 14, 0.96);
+      color: rgba(230, 205, 155, 0.92);
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    button.cp-btn-talk:hover:not(:disabled) {
+      border-color: rgba(230, 200, 140, 0.65);
+      box-shadow: 0 0 14px rgba(201, 168, 92, 0.2);
+    }
+    button.cp-btn-order {
+      flex: 1;
+      min-width: 42%;
+      padding: 0.48rem 0.5rem;
+      font-family: inherit;
+      font-size: 0.66rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      border: 1px solid rgba(200, 55, 60, 0.85);
+      background: rgba(48, 12, 16, 0.98);
+      color: #ff6a6a;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+    }
+    button.cp-btn-order:hover:not(:disabled) {
+      border-color: rgba(255, 100, 105, 0.75);
+      box-shadow: 0 0 16px rgba(220, 50, 55, 0.3);
+    }
+    button.cp-btn-talk:disabled,
+    button.cp-btn-order:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+    .cp-empty {
+      font-size: 0.78rem;
+      color: rgba(180, 170, 150, 0.5);
+      letter-spacing: 0.12em;
+      padding: 0.35rem 0;
+    }
+  </style>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div id="auth-overlay" class="auth-overlay">
+    <div class="auth-card">
+      <h2>刃界錄</h2>
+      <p class="sub">登入後方可入界</p>
+      <div id="auth-error"></div>
+      <div id="login-panel">
+        <div class="auth-field">
+          <label for="login-user">帳號</label>
+          <input id="login-user" type="text" autocomplete="username" />
+        </div>
+        <div class="auth-field">
+          <label for="login-pass">密碼</label>
+          <input id="login-pass" type="password" autocomplete="current-password" />
+        </div>
+        <div class="auth-actions">
+          <button type="button" class="primary" id="btn-login">登入</button>
+          <button type="button" class="ghost" id="btn-show-register">建立新號</button>
+        </div>
+      </div>
+      <div id="register-panel" class="hidden">
+        <div class="auth-field">
+          <label for="reg-user">帳號（英數與底線，3–32 字）</label>
+          <input id="reg-user" type="text" autocomplete="username" />
+        </div>
+        <div class="auth-field">
+          <label for="reg-pass">密碼（至少 6 字）</label>
+          <input id="reg-pass" type="password" autocomplete="new-password" />
+        </div>
+        <div class="auth-field">
+          <label for="reg-name">遊戲名號</label>
+          <input id="reg-name" type="text" maxlength="32" placeholder="你的道號或名號" />
+        </div>
+        <div class="auth-actions">
+          <button type="button" class="primary" id="btn-register">註冊並進入</button>
+          <p id="reg-wait-hint"></p>
+          <button type="button" class="ghost" id="btn-show-login">已有帳號？返回登入</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="game-root" class="hidden">
+    <header>
+      <div class="title-block">
+        <div><strong>刃界錄</strong> — 命數如刃，字句如血</div>
+        <div class="player-tag">
+          道號：
+          <button type="button" class="name-link" id="btn-open-rename" title="點擊修改名號">
+            <span id="display-player-name">—</span>
+          </button>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="header-btn bingjie" id="btn-bingjie">兵解輪迴</button>
+        <button type="button" class="header-btn" id="btn-logout">登出</button>
+      </div>
+    </header>
+    <main>
+      <section class="panel story-panel">
+        <div class="panel-head">劇情</div>
+        <div class="story-panel-body">
+          <div id="story-scroll" class="story-scroll" aria-live="polite"></div>
+          <div id="story-choices" class="story-choices" aria-label="當前抉擇"></div>
+        </div>
+      </section>
+      <aside class="stats">
+        <div class="panel-head">屬性</div>
+        <div class="stat-list">
+          <div class="stat-row stat-row--location stat-row--sidebar-meta">
+            <label class="stat-loc-label"><span class="stat-loc-emoji" aria-hidden="true">📛</span> 名號 <span class="val val--location" id="v-player-name-sidebar">—</span></label>
+          </div>
+          <div class="stat-row stat-row--location stat-row--sidebar-meta">
+            <label class="stat-loc-label"><span class="stat-loc-emoji" aria-hidden="true">💠</span> 境界 <span class="stat-rank-line"><span class="val val--location" id="v-rank">凡胎肉身</span><abbr class="rank-core-hint" id="v-rank-hint" title="" aria-label="境界演算法說明">i</abbr></span></label>
+          </div>
+          <div class="stat-row stat-row--location stat-row--sidebar-meta">
+            <label class="stat-loc-label"><span class="stat-loc-emoji" aria-hidden="true">⚠️</span> 狀態 <span class="val val--location" id="v-status">健康</span></label>
+          </div>
+          <div class="stat-row stat-row--location stat-row--sidebar-meta">
+            <label class="stat-loc-label"><span class="stat-loc-emoji" aria-hidden="true">🧠</span> <strong class="stat-mental-heading">精神</strong> <span class="val val--location" id="v-mental-state">清醒</span></label>
+          </div>
+          <div class="stat-row">
+            <label>道行 <span class="val" id="v-cultivation">50</span></label>
+            <div class="bar"><i id="b-cultivation"></i></div>
+          </div>
+          <div class="stat-row">
+            <label>理智 <span class="val" id="v-sanity">50</span></label>
+            <div class="bar"><i id="b-sanity"></i></div>
+          </div>
+          <div class="stat-row">
+            <label>賽博強化 <span class="val" id="v-cyber_aug">50</span></label>
+            <div class="bar"><i id="b-cyber_aug"></i></div>
+          </div>
+          <div class="stat-row">
+            <label>業力 <span class="val" id="v-karma">50</span></label>
+            <div class="bar"><i id="b-karma"></i></div>
+          </div>
+          <div class="stat-row">
+            <label>壽元 <span class="val" id="v-lifespan">50</span></label>
+            <div class="bar"><i id="b-lifespan"></i></div>
+          </div>
+          <div class="stat-row stat-row--location">
+            <label class="stat-loc-label"><span class="stat-loc-emoji" aria-hidden="true">🌌</span> 位面 <span class="val val--location" id="v-loc-plane">—</span></label>
+          </div>
+          <div class="stat-row stat-row--location">
+            <label class="stat-loc-label"><span class="stat-loc-emoji" aria-hidden="true">🌍</span> 世界 <span class="val val--location" id="v-loc-world">—</span></label>
+          </div>
+          <div class="stat-row stat-row--location">
+            <label class="stat-loc-label"><span class="stat-loc-emoji" aria-hidden="true">📍</span> 地址 <span class="val val--location" id="v-loc-address">—</span></label>
+          </div>
+          <button type="button" class="btn-realm-shuttle" id="btn-realm-shuttle" aria-haspopup="dialog" aria-controls="modal-realm-shuttle">【🌌 界域穿梭】</button>
+        </div>
+      </aside>
+    </main>
+    <div class="err" id="error"></div>
+    <div class="custom-action-row">
+      <input
+        type="text"
+        id="custom-action"
+        maxlength="2000"
+        autocomplete="off"
+        placeholder="自訂行動（如：在萬界裂縫祭出因果電漿飛劍）..."
+        aria-label="自訂行動"
+      />
+      <button type="button" class="send-custom" id="btn-send-custom">發送</button>
+    </div>
+    <footer class="actions">
+      <button type="button" class="action" data-panel="inventory">行囊</button>
+      <button type="button" class="action" data-panel="martial">武學</button>
+      <button type="button" class="action" data-panel="companions">同伴</button>
+      <button type="button" class="action" data-panel="quests">任務</button>
+    </footer>
+  </div>
+
+  <div id="modal-inventory" class="game-modal hidden" aria-hidden="true">
+    <div class="game-modal-backdrop inv-modal-backdrop" data-close="modal-inventory"></div>
+    <div class="game-modal-sheet inv-sheet">
+      <button type="button" class="game-modal-x" data-close="modal-inventory" aria-label="關閉">×</button>
+      <h3 class="inv-modal-h">行囊</h3>
+      <div id="inv-modal-loading" class="game-modal-loading">同步因果中…</div>
+      <div id="inv-modal-mount" class="inv-modal-mount hidden"></div>
+    </div>
+  </div>
+  <div id="modal-martial" class="game-modal hidden" aria-hidden="true">
+    <div class="game-modal-backdrop ma-modal-backdrop" data-close="modal-martial"></div>
+    <div class="game-modal-sheet ma-sheet">
+      <button type="button" class="game-modal-x" data-close="modal-martial" aria-label="關閉">×</button>
+      <h3 class="ma-modal-h">武學</h3>
+      <div id="ma-modal-loading" class="game-modal-loading">同步武學因果…</div>
+      <div id="ma-modal-mount" class="ma-modal-mount hidden"></div>
+    </div>
+  </div>
+  <div id="modal-companions" class="game-modal hidden" aria-hidden="true">
+    <div class="game-modal-backdrop co-modal-backdrop" data-close="modal-companions"></div>
+    <div class="game-modal-sheet co-sheet">
+      <button type="button" class="game-modal-x" data-close="modal-companions" aria-label="關閉">×</button>
+      <h3 class="co-modal-h">同伴</h3>
+      <div id="co-modal-loading" class="game-modal-loading">同步同行因果…</div>
+      <div id="co-modal-mount" class="co-modal-mount hidden"></div>
+    </div>
+  </div>
+  <div id="modal-quests" class="game-modal quest-roster-modal hidden" aria-hidden="true">
+    <div class="game-modal-backdrop quest-roster-backdrop" data-close="modal-quests"></div>
+    <div class="game-modal-sheet quest-roster-sheet">
+      <button type="button" class="game-modal-x" data-close="modal-quests" aria-label="關閉">×</button>
+      <div class="quest-roster-head">
+        <h3 class="quest-roster-title">📜 萬界因果</h3>
+        <p class="quest-roster-sub">江湖事務</p>
+      </div>
+      <div id="quest-roster-loading" class="game-modal-loading">正在展卷名冊…</div>
+      <div id="quest-roster-mount" class="quest-roster-mount hidden"></div>
+      <div class="quest-roster-footer">
+        <button type="button" id="btn-quest-roster-close" class="quest-roster-close-btn">關閉名冊</button>
+      </div>
+    </div>
+  </div>
+  <div id="game-confirm-root" class="game-confirm-root hidden" aria-hidden="true">
+    <div class="game-confirm-backdrop" data-game-confirm-dismiss aria-hidden="true"></div>
+    <div class="game-confirm-card" role="dialog" aria-modal="true" aria-labelledby="game-confirm-msg">
+      <p id="game-confirm-msg" class="game-confirm-msg"></p>
+      <div class="game-confirm-actions">
+        <button type="button" id="game-confirm-ok" class="game-confirm-btn game-confirm-ok">確認</button>
+        <button type="button" id="game-confirm-cancel" class="game-confirm-btn game-confirm-cancel">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-rename" class="game-modal hidden" aria-hidden="true">
+    <div class="game-modal-backdrop" data-close="modal-rename" aria-hidden="true"></div>
+    <div class="game-modal-sheet">
+      <button type="button" class="game-modal-x" data-close="modal-rename" aria-label="關閉">×</button>
+      <h3 class="game-modal-title">修改名號</h3>
+      <div class="rename-modal-field">
+        <input type="text" id="rename-name-input" maxlength="32" placeholder="新名號" />
+      </div>
+      <div class="rename-modal-actions">
+        <button type="button" id="btn-rename-cancel" data-close="modal-rename">取消</button>
+        <button type="button" id="btn-rename-save">確定</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-realm-shuttle" class="game-modal hidden" aria-hidden="true" role="dialog" aria-labelledby="realm-shuttle-title">
+    <div class="game-modal-backdrop" data-close="modal-realm-shuttle" aria-hidden="true"></div>
+    <div class="game-modal-sheet realm-shuttle-sheet">
+      <button type="button" class="game-modal-x" data-close="modal-realm-shuttle" aria-label="關閉">×</button>
+      <h3 id="realm-shuttle-title" class="realm-shuttle-h">界域穿梭</h3>
+      <p class="realm-shuttle-sub">選擇位面後將更新側邊欄座標並寫入存檔；行囊、武學、同伴與歷史對話均保留，並由敘事者生成新開場與主線鉤子。</p>
+      <div class="realm-shuttle-list">
+        <button type="button" class="realm-shuttle-option" data-realm="cyber">
+          <span class="realm-shuttle-option-title">🌆 賽博都市</span>
+          <span class="realm-shuttle-option-hint">黑道、科技、霓虹</span>
+        </button>
+        <button type="button" class="realm-shuttle-option" data-realm="mundane">
+          <span class="realm-shuttle-option-title">🏙️ 平凡都市</span>
+          <span class="realm-shuttle-option-hint">情感、黑道、商戰、愛恨</span>
+        </button>
+        <button type="button" class="realm-shuttle-option" data-realm="xianxia">
+          <span class="realm-shuttle-option-title">仙俠玄幻</span>
+          <span class="realm-shuttle-option-hint">修煉、宗門、渡劫</span>
+        </button>
+        <button type="button" class="realm-shuttle-option" data-realm="myth">
+          <span class="realm-shuttle-option-title">🛡️ 萬界神話</span>
+          <span class="realm-shuttle-option-hint">各地神話、奧林帕斯、北歐</span>
+        </button>
+        <button type="button" class="realm-shuttle-option" data-realm="crusade">
+          <span class="realm-shuttle-option-title">🛡️ 40K戰鎚</span>
+          <span class="realm-shuttle-option-hint">審判庭、星際戰爭、亞空間</span>
+        </button>
+        <button type="button" class="realm-shuttle-option" data-realm="academy">
+          <span class="realm-shuttle-option-title">🧙 魔法學院</span>
+          <span class="realm-shuttle-option-hint">哈利波特風格、魔藥、禁忌</span>
+        </button>
+        <button type="button" class="realm-shuttle-option" data-realm="ring">
+          <span class="realm-shuttle-option-title">💍 中土魔戒</span>
+          <span class="realm-shuttle-option-hint">史詩、戒靈、部落</span>
+        </button>
+        <button type="button" class="realm-shuttle-option" data-realm="cthulhu">
+          <span class="realm-shuttle-option-title">🐙 克蘇魯深淵</span>
+          <span class="realm-shuttle-option-hint">瘋狂、不可名狀、祭壇</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TOKEN_KEY = "blade_token";
+    const API_TURN = "/api/turn";
+    const API_ME = "/api/me";
+    const API_LOGIN = "/api/login";
+    const API_REGISTER = "/api/register";
+    const API_LOGOUT = "/api/logout";
+    const API_PANEL = "/api/panel";
+    const API_QUESTS_OPEN = "/api/quests_open";
+    const API_QUESTS_ACK_CAUSAL = "/api/quests_ack_causal";
+    const API_QUEST_TRACK = "/api/quest_track";
+    const API_RENAME = "/api/me/name";
+    const API_RESET_GAME = "/reset_game";
+    const API_INVENTORY_ACTION = "/api/inventory_action";
+    const API_SKILL_ACTION = "/api/skill_action";
+    const API_REALM_SHUTTLE = "/api/realm_shuttle";
+
+    let martialUiExpandedId = null;
+    let companionUiExpandedId = null;
+
+    const authOverlay = document.getElementById("auth-overlay");
+    const gameRoot = document.getElementById("game-root");
+    const authErr = document.getElementById("auth-error");
+    const loginPanel = document.getElementById("login-panel");
+    const registerPanel = document.getElementById("register-panel");
+    const storyScrollEl = document.getElementById("story-scroll");
+    const storyChoicesEl = document.getElementById("story-choices");
+    let storyTypewriterGeneration = 0;
+    let storyTypewriterSkipHandler = null;
+    let storyTypewriterScrollRaf = null;
+    let storyTwScrollAnchorEl = null;
+    const errEl = document.getElementById("error");
+    const buttons = document.querySelectorAll("button.action");
+    const customInput = document.getElementById("custom-action");
+    const sendCustomBtn = document.getElementById("btn-send-custom");
+    const displayPlayerName = document.getElementById("display-player-name");
+    const regWaitHint = document.getElementById("reg-wait-hint");
+    const renameInput = document.getElementById("rename-name-input");
+
+    let gameConfirmResolver = null;
+
+    function showGameConfirm(message) {
+      return new Promise((resolve) => {
+        gameConfirmResolver = resolve;
+        const root = document.getElementById("game-confirm-root");
+        const msg = document.getElementById("game-confirm-msg");
+        if (!root || !msg) {
+          gameConfirmResolver = null;
+          resolve(false);
+          return;
+        }
+        msg.textContent = message;
+        root.classList.remove("hidden");
+        root.setAttribute("aria-hidden", "false");
+        document.getElementById("game-confirm-ok")?.focus();
+      });
+    }
+
+    function resolveGameConfirm(value) {
+      const root = document.getElementById("game-confirm-root");
+      if (root) {
+        root.classList.add("hidden");
+        root.setAttribute("aria-hidden", "true");
+      }
+      const fn = gameConfirmResolver;
+      gameConfirmResolver = null;
+      if (fn) fn(!!value);
+    }
+
+    (function initGameConfirm() {
+      const root = document.getElementById("game-confirm-root");
+      document.getElementById("game-confirm-ok")?.addEventListener("click", () => resolveGameConfirm(true));
+      document.getElementById("game-confirm-cancel")?.addEventListener("click", () => resolveGameConfirm(false));
+      root?.querySelectorAll("[data-game-confirm-dismiss]").forEach((el) => {
+        el.addEventListener("click", () => {
+          if (gameConfirmResolver) resolveGameConfirm(false);
+        });
+      });
+      document.addEventListener("keydown", (ev) => {
+        if (!gameConfirmResolver || !root || root.classList.contains("hidden")) return;
+        if (ev.key === "Escape") {
+          ev.preventDefault();
+          resolveGameConfirm(false);
+        }
+      });
+    })();
+
+    const STAT_KEYS = ["cultivation", "sanity", "cyber_aug", "karma", "lifespan"];
+    const LOCATION_KEYS = ["plane", "world", "address"];
+    const LOCATION_VALUE_IDS = { plane: "v-loc-plane", world: "v-loc-world", address: "v-loc-address" };
+    const DEFAULT_LOCATION = { plane: "—", world: "—", address: "—" };
+    const DEFAULT_STATS = Object.freeze({
+      cultivation: 50,
+      sanity: 50,
+      cyber_aug: 50,
+      karma: 50,
+      lifespan: 50,
+    });
+    let stats = { ...DEFAULT_STATS };
+    let currentGameState = null;
+
+    function normalizeClientInventory(raw) {
+      const cur = { silver: 0, spirit_stone: 0, credit: 0 };
+      const out = { currencies: { ...cur }, items: [] };
+      if (!raw || typeof raw !== "object") return out;
+      if (raw.currencies && typeof raw.currencies === "object") {
+        if (raw.currencies.silver != null) out.currencies.silver = Math.max(0, Number(raw.currencies.silver) || 0);
+        if (raw.currencies.spirit_stone != null) out.currencies.spirit_stone = Math.max(0, Number(raw.currencies.spirit_stone) || 0);
+        if (raw.currencies.credit != null) out.currencies.credit = Math.max(0, Number(raw.currencies.credit) || 0);
+      }
+      if (Array.isArray(raw.items)) {
+        raw.items.forEach((row) => {
+          if (!row || typeof row !== "object" || !row.name) return;
+          const qty = Math.max(0, Number(row.quantity) || 0);
+          if (qty <= 0) return;
+          out.items.push({
+            id: String(row.id || row.name),
+            name: String(row.name),
+            category: String(row.category || "material"),
+            quantity: qty,
+            equipped: !!row.equipped,
+            description: row.description != null ? String(row.description) : "",
+          });
+        });
+        return out;
+      }
+      Object.keys(raw).forEach((name) => {
+        if (["version", "items", "currencies"].includes(name)) return;
+        const val = raw[name];
+        out.items.push({
+          id: "legacy_" + name,
+          name,
+          category: "material",
+          quantity: 1,
+          equipped: false,
+          description: typeof val === "string" ? val : "",
+        });
+      });
+      return out;
+    }
+
+    function setInvModalBusy(on) {
+      document.querySelectorAll("#inv-modal-mount .inv-item-hit").forEach((b) => { b.disabled = on; });
+    }
+
+    async function postInventoryAction(action, itemId) {
+      const res = await fetch(API_INVENTORY_ACTION, {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({ action, item_id: itemId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        closeModal("modal-inventory");
+        showAuth();
+        throw new Error("登入已失效，請重新登入");
+      }
+      if (!res.ok) {
+        const d = data.detail;
+        const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || res.statusText);
+        throw new Error(msg || "操作失敗");
+      }
+      return data;
+    }
+
+    function renderInventoryModal(gs) {
+      const mount = document.getElementById("inv-modal-mount");
+      if (!mount) return;
+      mount.innerHTML = "";
+      const inv = normalizeClientInventory(gs && gs.inventory);
+      const mkCat = (emoji, title) => {
+        const block = document.createElement("section");
+        block.className = "inv-cat-block";
+        const h = document.createElement("h4");
+        h.className = "inv-cat-head";
+        h.textContent = emoji + " " + title;
+        block.appendChild(h);
+        return block;
+      };
+      const curBlock = mkCat("💰", "貨幣");
+      const curRows = [
+        ["白銀", inv.currencies.silver],
+        ["靈石", inv.currencies.spirit_stone],
+        ["信用點", inv.currencies.credit],
+      ];
+      curRows.forEach(([label, n]) => {
+        const row = document.createElement("div");
+        row.className = "inv-item-row";
+        row.innerHTML = "<div class=\"inv-item-line\"><span class=\"inv-item-static\">" + label + "</span><span class=\"inv-item-meta\">× " + n + "</span></div>";
+        curBlock.appendChild(row);
+      });
+      mount.appendChild(curBlock);
+
+      const byCat = { consumable: [], material: [], equipment: [] };
+      inv.items.forEach((it) => {
+        const c = it.category === "consumable" ? "consumable" : it.category === "equipment" ? "equipment" : "material";
+        byCat[c].push(it);
+      });
+
+      function renderItemList(block, list, kind) {
+        if (!list.length) {
+          const e = document.createElement("div");
+          e.className = "inv-empty";
+          e.textContent = "— 空 —";
+          block.appendChild(e);
+          return;
+        }
+        list.forEach((it) => {
+          const row = document.createElement("div");
+          row.className = "inv-item-row";
+          const line = document.createElement("div");
+          line.className = "inv-item-line";
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "inv-item-hit";
+          btn.textContent = it.name;
+          if (kind === "equipment") {
+            if (it.equipped) {
+              const tag = document.createElement("span");
+              tag.className = "inv-equipped-tag";
+              tag.textContent = "［已裝備］";
+              line.appendChild(btn);
+              line.appendChild(tag);
+            } else {
+              line.appendChild(btn);
+            }
+          } else {
+            line.appendChild(btn);
+          }
+          const meta = document.createElement("span");
+          meta.className = "inv-item-meta";
+          meta.textContent = "× " + it.quantity;
+          line.appendChild(meta);
+          btn.addEventListener("click", async () => {
+            if (kind === "consumable" || kind === "material") {
+              const ok = await showGameConfirm("是否使用「" + it.name + "」？");
+              if (!ok) return;
+              setInvModalBusy(true);
+              errEl.textContent = "";
+              try {
+                const data = await postInventoryAction("use", it.id);
+                if (data.game_state) applyGameState(data.game_state);
+                closeModal("modal-inventory");
+              } catch (e) {
+                errEl.textContent = String(e.message || e);
+              } finally {
+                setInvModalBusy(false);
+              }
+            } else if (kind === "equipment") {
+              const wantUnequip = it.equipped;
+              const ok2 = await showGameConfirm(
+                wantUnequip ? "是否卸下「" + it.name + "」？" : "是否裝備「" + it.name + "」？"
+              );
+              if (!ok2) return;
+              setInvModalBusy(true);
+              errEl.textContent = "";
+              try {
+                const data = await postInventoryAction(wantUnequip ? "unequip" : "equip", it.id);
+                if (data.game_state) applyGameState(data.game_state);
+                renderInventoryModal(data.game_state);
+              } catch (e) {
+                errEl.textContent = String(e.message || e);
+              } finally {
+                setInvModalBusy(false);
+              }
+            }
+          });
+          row.appendChild(line);
+          if (it.description) {
+            const d = document.createElement("div");
+            d.className = "inv-item-desc";
+            d.textContent = it.description;
+            row.appendChild(d);
+          }
+          block.appendChild(row);
+        });
+      }
+
+      const sup = mkCat("💊", "補給");
+      renderItemList(sup, byCat.consumable, "consumable");
+      mount.appendChild(sup);
+      const mat = mkCat("📦", "物品");
+      renderItemList(mat, byCat.material, "material");
+      mount.appendChild(mat);
+      const eq = mkCat("⚔️", "裝備");
+      renderItemList(eq, byCat.equipment, "equipment");
+      mount.appendChild(eq);
+    }
+
+    async function openInventoryModal() {
+      const modal = document.getElementById("modal-inventory");
+      const loading = document.getElementById("inv-modal-loading");
+      const mount = document.getElementById("inv-modal-mount");
+      if (!modal || !loading || !mount) return;
+      openModalOnly("modal-inventory");
+      loading.classList.remove("hidden");
+      mount.classList.add("hidden");
+      mount.innerHTML = "";
+      errEl.textContent = "";
+      try {
+        const res = await fetch(API_ME, { headers: authHeaders(false) });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          closeModal("modal-inventory");
+          showAuth();
+          return;
+        }
+        if (!res.ok) {
+          loading.classList.add("hidden");
+          mount.classList.remove("hidden");
+          mount.innerHTML = "<p class=\"inv-empty\">讀取失敗</p>";
+          return;
+        }
+        currentGameState = data.game_state;
+        if (data.game_state && data.game_state.stats) {
+          stats = normalizeStatsFromServer(data.game_state.stats);
+          setBars();
+        }
+        renderInventoryModal(data.game_state);
+        loading.classList.add("hidden");
+        mount.classList.remove("hidden");
+      } catch (e) {
+        loading.classList.add("hidden");
+        mount.classList.remove("hidden");
+        mount.innerHTML = "<p class=\"inv-empty\">" + String(e.message || e) + "</p>";
+      }
+    }
+
+    function maHumanizeJsonText(s) {
+      const t = String(s).trim();
+      if (!t || (!t.startsWith("{") && !t.startsWith("["))) return t;
+      try {
+        const o = JSON.parse(t);
+        if (o && typeof o === "object" && !Array.isArray(o)) {
+          return Object.entries(o)
+            .map(([k, v]) => k + "：" + (v != null ? String(v) : ""))
+            .join("；");
+        }
+        if (Array.isArray(o)) return o.map((x) => String(x)).join("、");
+      } catch { /* ignore */ }
+      return t.replace(/["{}[\]]/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    function maNormalizeSkillArray(x) {
+      if (x == null) return [];
+      if (Array.isArray(x)) return x;
+      if (typeof x === "string") {
+        const t = x.trim();
+        if (!t || t === "[]") return [];
+        try {
+          const p = JSON.parse(t);
+          if (Array.isArray(p)) return p;
+          if (p && typeof p === "object") return [p];
+        } catch { return []; }
+        return [];
+      }
+      if (typeof x === "object") return [x];
+      return [];
+    }
+
+    function maRealmZh(inRealm, inTier) {
+      const raw = String(inRealm || "").trim();
+      let tier = String(inTier || "").toLowerCase();
+      if (tier !== "high" && tier !== "mid" && tier !== "low") {
+        const rj = raw.toLowerCase();
+        if (/登峰|造極|legendary|supreme|transcendent/.test(raw) || /grandmaster|legend/.test(rj)) tier = "high";
+        else if (/融會|貫通|大成|圓滿|化境|通神|master\b|expert\b/.test(raw) || /\bmaster\b|\bexpert\b/.test(rj)) tier = "high";
+        else if (/略有小成|小成|精通|熟練|登堂|intermediate|adept|journeyman/.test(raw) || /\badept\b|\bintermediate\b/.test(rj)) tier = "mid";
+        else tier = "low";
+      }
+      if (/登峰|造極/.test(raw)) return { label: "登峰造極", tier: "high" };
+      if (/融會|貫通/.test(raw)) return { label: "融會貫通", tier: "high" };
+      if (/略有小成/.test(raw)) return { label: "略有小成", tier: "mid" };
+      if (/小成|精通|熟練/.test(raw)) return { label: "略有小成", tier: "mid" };
+      if (/初窺|入門|粗淺/.test(raw)) return { label: "初窺門徑", tier: "low" };
+      if (/novice|beginner|initiate|basic/i.test(raw)) return { label: "初窺門徑", tier: "low" };
+      if (/intermediate|adept|journeyman/i.test(raw)) return { label: "略有小成", tier: "mid" };
+      if (/grandmaster|legend|supreme|transcendent/i.test(raw)) return { label: "登峰造極", tier: "high" };
+      if (/\bmaster\b|\bexpert\b/i.test(raw)) return { label: "融會貫通", tier: "high" };
+      if (tier === "high") return { label: "融會貫通", tier: "high" };
+      if (tier === "mid") return { label: "略有小成", tier: "mid" };
+      return { label: "初窺門徑", tier: "low" };
+    }
+
+    function maStructuredItemToRow(item, opts) {
+      const cat = opts.category;
+      const skillGroup = opts.skillGroup;
+      const defaultRealm = opts.defaultRealm;
+      if (item == null) return null;
+      if (typeof item === "string") {
+        const t = item.trim();
+        if (!t) return null;
+        if (t.startsWith("{") || t.startsWith("[")) {
+          try {
+            return maStructuredItemToRow(JSON.parse(t), opts);
+          } catch {
+            return null;
+          }
+        }
+        const rd = maRealmZh(defaultRealm || "", "low");
+        return {
+          id: "sk_" + t + "_" + skillGroup + "_" + cat,
+          name: t,
+          description: "",
+          category: cat,
+          skillGroup,
+          realm: rd.label,
+          realm_tier: rd.tier,
+          fusion_percent: cat === "augment" ? 0 : 0,
+        };
+      }
+      if (typeof item !== "object") return null;
+      let name = String(item.name || item.title || item.technique || item.skill || item.label || "").trim();
+      let fromKeyVal = "";
+      if (!name) {
+        const skipK = new Set(["realm", "境界", "realm_tier", "tier", "desc", "description", "detail", "note", "text", "fusion_percent", "fusion", "sync", "integration", "id", "category", "skillGroup", "grade", "品階", "tier_grade", "origin", "來源"]);
+        const keys = Object.keys(item).filter((k) => !skipK.has(k));
+        if (keys.length === 1) {
+          const k0 = keys[0];
+          const v0 = item[k0];
+          if (typeof v0 === "string" || typeof v0 === "number") {
+            name = k0.trim();
+            fromKeyVal = String(v0);
+          } else if (v0 && typeof v0 === "object") {
+            return maStructuredItemToRow({ ...v0, name: v0.name || k0 }, opts);
+          }
+        }
+      }
+      if (!name) return null;
+      let desc = item.description ?? item.desc ?? item.detail ?? item.note ?? item.text ?? "";
+      if (fromKeyVal && !String(desc).trim()) desc = fromKeyVal;
+      desc = maHumanizeJsonText(String(desc));
+      const rd = maRealmZh(item.realm || item.境界 || item.stage || defaultRealm || "", item.realm_tier || item.tier);
+      let fusion = Math.max(0, Math.min(100, Number(item.fusion_percent ?? item.fusion ?? item.sync ?? item.integration ?? 0)));
+      if (cat === "augment" && !fusion && desc) {
+        const m = desc.match(/(\d{1,3})\s*%/);
+        if (m) fusion = Math.min(100, parseInt(m[1], 10));
+      }
+      const gradeRaw = item.grade != null ? item.grade : item.品階 != null ? item.品階 : item.tier_grade;
+      const grade = gradeRaw != null ? String(gradeRaw).trim() : "";
+      const originRaw = item.origin != null ? item.origin : item.來源;
+      const origin = originRaw != null ? String(originRaw).trim() : "";
+      const row = {
+        id: String(item.id || name + "_" + skillGroup + "_" + cat),
+        name,
+        description: desc,
+        category: cat,
+        skillGroup,
+        realm: rd.label,
+        realm_tier: rd.tier,
+        fusion_percent: cat === "augment" ? fusion : 0,
+      };
+      if (grade) row.grade = grade;
+      if (origin) row.origin = origin;
+      return row;
+    }
+
+    function maAbsorbStructuredFields(v, pushRow) {
+      maNormalizeSkillArray(v.techniques).forEach((it) => {
+        const r = maStructuredItemToRow(it, { category: "external", skillGroup: "technique" });
+        if (r) pushRow(r);
+      });
+      maNormalizeSkillArray(v.forbidden_spells).forEach((it) => {
+        const r = maStructuredItemToRow(it, { category: "external", skillGroup: "forbidden", defaultRealm: "初窺門徑" });
+        if (r) pushRow(r);
+      });
+      maNormalizeSkillArray(v.progress).forEach((it) => {
+        const r = maStructuredItemToRow(it, { category: "internal", skillGroup: "progress", defaultRealm: "略有小成" });
+        if (r) pushRow(r);
+      });
+      maNormalizeSkillArray(v.cybernetic_modifications).forEach((it) => {
+        const r = maStructuredItemToRow(it, { category: "augment", skillGroup: "cyber" });
+        if (r) pushRow(r);
+      });
+    }
+
+    function normalizeClientSkills(raw, martialLegacy) {
+      const out = { entries: [] };
+      const STRUCT_SKIP = new Set([
+        "version", "entries", "currencies", "items",
+        "techniques", "forbidden_spells", "progress", "cybernetic_modifications",
+      ]);
+
+      const pushRow = (row) => {
+        if (row == null) return;
+        if (typeof row === "string") {
+          const t = row.trim();
+          if (!t) return;
+          try {
+            row = JSON.parse(t);
+          } catch {
+            pushRow({ name: t, realm: "初窺門徑", category: "external", skillGroup: "technique" });
+            return;
+          }
+        }
+        if (!row || typeof row !== "object") return;
+        const name = row.name != null ? String(row.name).trim() : "";
+        if (!name) return;
+        let cat = String(row.category || "external").toLowerCase();
+        if (cat === "外功" || cat === "招式") cat = "external";
+        else if (cat === "內功" || cat === "氣功") cat = "internal";
+        else if (cat === "心法" || cat === "根本") cat = "heart";
+        else if (cat === "改造" || cat === "植入" || cat === "augment") cat = "augment";
+        if (!["external", "internal", "heart", "augment"].includes(cat)) cat = "external";
+        const rd = maRealmZh(row.realm || row.境界 || "", row.realm_tier || row.tier);
+        let desc = row.description != null ? String(row.description) : (row.desc != null ? String(row.desc) : "");
+        desc = maHumanizeJsonText(desc);
+        const fusion = Math.max(0, Math.min(100, Number(row.fusion_percent ?? row.fusion) || 0));
+        const sg = row.skillGroup;
+        const skillGroup = sg === "forbidden" ? "forbidden" : sg === "progress" ? "progress" : sg === "cyber" ? "cyber" : cat === "external" ? "technique" : sg || null;
+        const grade = row.grade != null ? String(row.grade).trim() : (row.品階 != null ? String(row.品階).trim() : "");
+        let origin = row.origin != null ? String(row.origin).trim() : "";
+        if (!origin && row.來源 != null) origin = String(row.來源).trim();
+        const ent = {
+          id: String(row.id || name + "_" + (skillGroup || cat)),
+          name,
+          category: cat,
+          skillGroup,
+          realm: rd.label,
+          realm_tier: rd.tier,
+          description: desc,
+          fusion_percent: cat === "augment" ? fusion : 0,
+        };
+        if (grade) ent.grade = grade;
+        if (origin) ent.origin = origin;
+        out.entries.push(ent);
+      };
+
+      function absorbSource(src) {
+        if (src == null || src === "") return;
+        let v = src;
+        if (typeof v === "string") {
+          const t = v.trim();
+          if (!t || t === "{}") return;
+          try {
+            v = JSON.parse(t);
+          } catch {
+            return;
+          }
+        }
+        if (Array.isArray(v)) {
+          v.forEach((row) => pushRow(row));
+          return;
+        }
+        if (typeof v !== "object") return;
+        maAbsorbStructuredFields(v, pushRow);
+        const ent = v.entries;
+        if (Array.isArray(ent)) {
+          ent.forEach((row) => pushRow(row));
+        } else if (typeof ent === "string") {
+          try {
+            const inner = JSON.parse(ent.trim());
+            if (Array.isArray(inner)) inner.forEach((row) => pushRow(row));
+          } catch { /* ignore */ }
+        }
+        const keys = Object.keys(v).filter((k) => !STRUCT_SKIP.has(k));
+        for (const k of keys) {
+          const val = v[k];
+          if (val && typeof val === "object" && !Array.isArray(val)) {
+            pushRow({ ...val, name: val.name || k });
+          } else if (typeof val === "string") {
+            pushRow({ name: k, description: val, realm: "初窺門徑", category: "external", skillGroup: "technique" });
+          }
+        }
+      }
+
+      absorbSource(raw);
+      if (!out.entries.length) absorbSource(martialLegacy);
+      return out;
+    }
+
+    function setMartialModalBusy(on) {
+      document.querySelectorAll("#ma-modal-mount .ma-btn-cultivate, #ma-modal-mount .ma-card-expand").forEach((b) => { b.disabled = on; });
+    }
+
+    async function postSkillAction(action, skillId) {
+      const res = await fetch(API_SKILL_ACTION, {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({ action, skill_id: skillId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 401) {
+        localStorage.removeItem(TOKEN_KEY);
+        closeModal("modal-martial");
+        showAuth();
+        throw new Error("登入已失效，請重新登入");
+      }
+      if (!res.ok) {
+        const d = data.detail;
+        const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || res.statusText);
+        throw new Error(msg || "操作失敗");
+      }
+      return data;
+    }
+
+    function buildMartialSkillCard(ent, errEl, state) {
+      const card = document.createElement("div");
+      card.className = "ma-skill-card";
+      const expand = document.createElement("button");
+      expand.type = "button";
+      expand.className = "ma-card-expand";
+      expand.setAttribute("aria-expanded", martialUiExpandedId === ent.id ? "true" : "false");
+
+      const header = document.createElement("div");
+      header.className = "ma-card-header";
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "ma-skill-name--title";
+      nameSpan.textContent = ent.name;
+      header.appendChild(nameSpan);
+      const originStr = ent.origin != null ? String(ent.origin).trim().toLowerCase() : "";
+      const isPlayerOrigin = originStr === "player" || originStr === "custom" || originStr === "自創" || originStr === "user";
+      if (isPlayerOrigin) {
+        const ob = document.createElement("span");
+        ob.className = "ma-origin-badge";
+        ob.textContent = "［自創］";
+        header.appendChild(ob);
+      }
+      const gradeStr = ent.grade != null ? String(ent.grade).trim() : "";
+      if (gradeStr) {
+        const gb = document.createElement("span");
+        gb.className = "ma-grade-badge";
+        gb.textContent = gradeStr;
+        header.appendChild(gb);
+      }
+      if (ent.category === "augment") {
+        const pct = Math.round(ent.fusion_percent || 0);
+        const badge = document.createElement("span");
+        badge.className = "ma-fusion-badge";
+        badge.textContent = "融合度：" + pct + "%";
+        header.appendChild(badge);
+      } else {
+        const tier = ent.realm_tier || "low";
+        const tag = document.createElement("span");
+        tag.className = "ma-realm " + (tier === "high" ? "ma-realm--high" : tier === "mid" ? "ma-realm--mid" : "ma-realm--low");
+        tag.textContent = ent.realm || "初窺門徑";
+        header.appendChild(tag);
+      }
+      expand.appendChild(header);
+
+      const descEl = document.createElement("div");
+      const hasDesc = !!(ent.description && String(ent.description).trim());
+      descEl.className = "ma-skill-desc" + (hasDesc ? "" : " ma-desc-placeholder");
+      descEl.textContent = hasDesc ? String(ent.description).trim() : "（無描述）";
+      expand.appendChild(descEl);
+
+      if (ent.category === "augment") {
+        const pct = Math.round(ent.fusion_percent || 0);
+        const bar = document.createElement("div");
+        bar.className = "ma-fusion-bar";
+        bar.setAttribute("aria-hidden", "true");
+        const fill = document.createElement("i");
+        fill.style.width = pct + "%";
+        bar.appendChild(fill);
+        expand.appendChild(bar);
+      }
+
+      card.appendChild(expand);
+
+      const actions = document.createElement("div");
+      actions.className = "ma-skill-actions" + (martialUiExpandedId === ent.id ? " ma-open" : "");
+      const btnCu = document.createElement("button");
+      btnCu.type = "button";
+      btnCu.className = "ma-btn-cultivate";
+      btnCu.textContent = "【運功修煉】";
+      actions.appendChild(btnCu);
+      card.appendChild(actions);
+
+      expand.addEventListener("click", () => {
+        martialUiExpandedId = martialUiExpandedId === ent.id ? null : ent.id;
+        renderMartialModal(currentGameState || state);
+      });
+      btnCu.addEventListener("click", async (ev) => {
+        ev.stopPropagation();
+        const ok = await showGameConfirm("是否消耗因果進行修煉？");
+        if (!ok) return;
+        setMartialModalBusy(true);
+        errEl.textContent = "";
+        try {
+          const data = await postSkillAction("cultivate", ent.id);
+          if (data.game_state) {
+            applyGameState(data.game_state);
+            martialUiExpandedId = null;
+            renderMartialModal(data.game_state);
+          }
+        } catch (e) {
+          errEl.textContent = String(e.message || e);
+        } finally {
+          setMartialModalBusy(false);
+        }
+      });
+      return card;
+    }
+
+    function renderMartialModal(gs) {
+      const mount = document.getElementById("ma-modal-mount");
+      if (!mount) return;
+      mount.innerHTML = "";
+      const state = gs && typeof gs === "object" ? gs : currentGameState;
+      const sk = normalizeClientSkills(state && state.skills, state && state.martial_arts);
+      const byCat = { external: [], internal: [], heart: [], augment: [] };
+      sk.entries.forEach((e) => {
+        const c = ["external", "internal", "heart", "augment"].includes(e.category) ? e.category : "external";
+        byCat[c].push(e);
+      });
+
+      function appendSubsection(block, subTitle, list) {
+        if (!list.length) return;
+        const sh = document.createElement("h5");
+        sh.className = "ma-subhead";
+        sh.textContent = subTitle;
+        block.appendChild(sh);
+        const listWrap = document.createElement("div");
+        listWrap.className = "ma-skill-list";
+        list.forEach((ent) => {
+          listWrap.appendChild(buildMartialSkillCard(ent, errEl, state));
+        });
+        block.appendChild(listWrap);
+      }
+
+      function appendCategory(emoji, title, key) {
+        const block = document.createElement("section");
+        block.className = "ma-cat-block";
+        const h = document.createElement("h4");
+        h.className = "ma-cat-head";
+        h.textContent = emoji + " " + title;
+        block.appendChild(h);
+        const list = byCat[key];
+        if (!list.length) {
+          const emp = document.createElement("div");
+          emp.className = "ma-empty";
+          emp.textContent = "— 空 —";
+          block.appendChild(emp);
+          mount.appendChild(block);
+          return;
+        }
+        if (key === "external") {
+          const tech = list.filter((e) => e.skillGroup !== "forbidden");
+          const forb = list.filter((e) => e.skillGroup === "forbidden");
+          appendSubsection(block, "外功招式", tech);
+          appendSubsection(block, "禁忌咒法", forb);
+          if (!tech.length && !forb.length) {
+            const emp = document.createElement("div");
+            emp.className = "ma-empty";
+            emp.textContent = "— 空 —";
+            block.appendChild(emp);
+          }
+        } else if (key === "internal") {
+          const prog = list.filter((e) => e.skillGroup === "progress");
+          const other = list.filter((e) => e.skillGroup !== "progress");
+          appendSubsection(block, "修煉進度", prog.length ? prog : list);
+          if (prog.length && other.length) appendSubsection(block, "氣息運作", other);
+        } else if (key === "augment") {
+          appendSubsection(block, "賽博改造", list);
+        } else {
+          const listWrap = document.createElement("div");
+          listWrap.className = "ma-skill-list";
+          list.forEach((ent) => {
+            listWrap.appendChild(buildMartialSkillCard(ent, errEl, state));
+          });
+          block.appendChild(listWrap);
+        }
+        mount.appendChild(block);
+      }
+
+      appendCategory("⚔️", "外功", "external");
+      appendCategory("🌀", "內功", "internal");
+      appendCategory("📜", "心法", "heart");
+      appendCategory("🦾", "改造", "augment");
+    }
+
+    async function openMartialModal() {
+      const modal = document.getElementById("modal-martial");
+      const loading = document.getElementById("ma-modal-loading");
+      const mount = document.getElementById("ma-modal-mount");
+      if (!modal || !loading || !mount) return;
+      martialUiExpandedId = null;
+      openModalOnly("modal-martial");
+      loading.classList.remove("hidden");
+      mount.classList.add("hidden");
+      mount.innerHTML = "";
+      errEl.textContent = "";
+      try {
+        const res = await fetch(API_ME, { headers: authHeaders(false) });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          closeModal("modal-martial");
+          showAuth();
+          return;
+        }
+        if (!res.ok) {
+          loading.classList.add("hidden");
+          mount.classList.remove("hidden");
+          mount.innerHTML = "<p class=\"ma-empty\">讀取失敗</p>";
+          return;
+        }
+        currentGameState = data.game_state;
+        if (data.game_state && data.game_state.stats) {
+          stats = normalizeStatsFromServer(data.game_state.stats);
+          setBars();
+        }
+        renderMartialModal(data.game_state);
+        loading.classList.add("hidden");
+        mount.classList.remove("hidden");
+      } catch (e) {
+        loading.classList.add("hidden");
+        mount.classList.remove("hidden");
+        mount.innerHTML = "<p class=\"ma-empty\">" + String(e.message || e) + "</p>";
+      }
+    }
+
+    function clientCompanionId(name) {
+      let h = 2166136261;
+      const s = String(name);
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return "cp_" + (h >>> 0).toString(16);
+    }
+
+    function sanitizeCompanionRow(d, fallbackName) {
+      const name = String((d && d.name) || fallbackName || "無名之影").trim() || "無名之影";
+      let favor = Number(
+        d && (d.favor_percent != null ? d.favor_percent : d.favor != null ? d.favor : d.好感度),
+      );
+      if (Number.isNaN(favor)) favor = 50;
+      favor = Math.max(0, Math.min(100, Math.round(favor)));
+      const id = String((d && d.id) || "").trim() || clientCompanionId(name);
+      return {
+        id,
+        name,
+        title: String((d && d.title) || (d && d.頭銜) || "").trim(),
+        race_or_faction: String(
+          (d && d.race_or_faction) || (d && d.race) || (d && d.faction) || (d && d.種族) || (d && d.陣營) || "",
+        ).trim(),
+        favor_percent: favor,
+        status: String((d && d.status) || (d && d.狀態) || "平穩").trim() || "平穩",
+        backstory: String((d && d.backstory) || (d && d.background) || (d && d.背景) || "").trim(),
+        visual: String((d && d.visual) || (d && d.視覺) || "").trim(),
+        signature_ability: String(
+          (d && d.signature_ability) || (d && d.ability) || (d && d.special) || (d && d.異質手段) || "",
+        ).trim(),
+        memory_note: String((d && d.memory_note) || (d && d.memory) || "").trim(),
+      };
+    }
+
+    function normalizeClientCompanions(raw) {
+      const out = { version: 1, entries: [] };
+      if (raw == null) return out;
+      if (Array.isArray(raw)) {
+        raw.forEach((row) => {
+          if (row && typeof row === "object") out.entries.push(sanitizeCompanionRow(row));
+        });
+        return out;
+      }
+      if (typeof raw === "object") {
+        const ent = raw.entries;
+        if (Array.isArray(ent)) {
+          ent.forEach((row) => {
+            if (row && typeof row === "object") out.entries.push(sanitizeCompanionRow(row));
+          });
+          return out;
+        }
+        Object.keys(raw).forEach((k) => {
+          if (k === "version" || k === "entries") return;
+          const v = raw[k];
+          if (v && typeof v === "object" && !Array.isArray(v)) {
+            out.entries.push(sanitizeCompanionRow({ ...v, name: v.name || k }));
+          } else if (typeof v === "string") {
+            out.entries.push(sanitizeCompanionRow({ name: k, backstory: v }));
+          }
+        });
+      }
+      return out;
+    }
+
+    function setCompanionModalBusy(on) {
+      document.querySelectorAll("#co-modal-mount .cp-btn-talk, #co-modal-mount .cp-btn-order, #co-modal-mount .cp-card-expand").forEach((b) => {
+        b.disabled = on;
+      });
+    }
+
+    function buildCompanionCard(ent, state) {
+      const card = document.createElement("div");
+      card.className = "cp-companion-card";
+      const expand = document.createElement("button");
+      expand.type = "button";
+      expand.className = "cp-card-expand";
+      expand.setAttribute("aria-expanded", companionUiExpandedId === ent.id ? "true" : "false");
+
+      const nameEl = document.createElement("div");
+      nameEl.className = "cp-name";
+      nameEl.textContent = ent.name;
+      expand.appendChild(nameEl);
+
+      const titleEl = document.createElement("div");
+      titleEl.className = "cp-title-line";
+      titleEl.textContent = ent.title || "（無頭銜）";
+      expand.appendChild(titleEl);
+
+      const pct = Math.round(ent.favor_percent || 0);
+      const favorLab = document.createElement("div");
+      favorLab.className = "cp-favor-label";
+      favorLab.textContent = "因果羈絆：" + pct + "%";
+      expand.appendChild(favorLab);
+
+      const bar = document.createElement("div");
+      bar.className = "cp-favor-bar";
+      bar.setAttribute("aria-hidden", "true");
+      const fill = document.createElement("i");
+      fill.style.width = pct + "%";
+      bar.appendChild(fill);
+      expand.appendChild(bar);
+
+      const st = document.createElement("div");
+      st.className = "cp-status-line";
+      const race = ent.race_or_faction ? "〔" + ent.race_or_faction + "〕" : "";
+      st.textContent = "狀態：" + ent.status + (race ? " " + race : "");
+      expand.appendChild(st);
+
+      const desc = document.createElement("div");
+      const hasBk = !!(ent.backstory && String(ent.backstory).trim());
+      desc.className = "cp-desc" + (hasBk ? "" : " ma-desc-placeholder");
+      desc.textContent = hasBk ? String(ent.backstory).trim() : "（無背景殘簡）";
+      expand.appendChild(desc);
+
+      if (ent.signature_ability && String(ent.signature_ability).trim()) {
+        const ab = document.createElement("div");
+        ab.className = "cp-ability-line";
+        ab.textContent = "異質手段：" + String(ent.signature_ability).trim();
+        expand.appendChild(ab);
+      }
+
+      if (ent.visual && String(ent.visual).trim()) {
+        const vis = document.createElement("div");
+        vis.className = "cp-visual-line";
+        vis.textContent = "視覺印：" + String(ent.visual).trim();
+        expand.appendChild(vis);
+      }
+
+      card.appendChild(expand);
+
+      const actions = document.createElement("div");
+      actions.className = "cp-companion-actions" + (companionUiExpandedId === ent.id ? " cp-open" : "");
+      const btnTalk = document.createElement("button");
+      btnTalk.type = "button";
+      btnTalk.className = "cp-btn-talk";
+      btnTalk.textContent = "【與其交談】";
+      const btnOrder = document.createElement("button");
+      btnOrder.type = "button";
+      btnOrder.className = "cp-btn-order";
+      btnOrder.textContent = "【下達因果指令】";
+      actions.appendChild(btnTalk);
+      actions.appendChild(btnOrder);
+      card.appendChild(actions);
+
+      expand.addEventListener("click", () => {
+        companionUiExpandedId = companionUiExpandedId === ent.id ? null : ent.id;
+        renderCompanionsModal(currentGameState || state);
+      });
+
+      btnTalk.addEventListener("click", async (ev) => {
+        ev.stopPropagation();
+        setCompanionModalBusy(true);
+        errEl.textContent = "";
+        try {
+          closeModal("modal-companions");
+          companionUiExpandedId = null;
+          await takeTurn("【與同伴「" + ent.name + "」交談】");
+        } catch (e) {
+          errEl.textContent = String(e.message || e);
+        } finally {
+          setCompanionModalBusy(false);
+        }
+      });
+
+      btnOrder.addEventListener("click", async (ev) => {
+        ev.stopPropagation();
+        const detail = window.prompt("因果指令：要求其執行之事（冷硬具體）：", "");
+        if (detail === null) return;
+        const t = String(detail).trim();
+        if (!t) return;
+        setCompanionModalBusy(true);
+        errEl.textContent = "";
+        try {
+          closeModal("modal-companions");
+          companionUiExpandedId = null;
+          await takeTurn("【下達因果指令｜同伴「" + ent.name + "」】" + t);
+        } catch (e) {
+          errEl.textContent = String(e.message || e);
+        } finally {
+          setCompanionModalBusy(false);
+        }
+      });
+
+      return card;
+    }
+
+    function renderCompanionsModal(gs) {
+      const mount = document.getElementById("co-modal-mount");
+      if (!mount) return;
+      mount.innerHTML = "";
+      const state = gs && typeof gs === "object" ? gs : currentGameState;
+      const co = normalizeClientCompanions(state && state.companions);
+      if (!co.entries.length) {
+        const emp = document.createElement("div");
+        emp.className = "cp-empty";
+        emp.textContent = "因果簿上無同行者。獨行。";
+        mount.appendChild(emp);
+        return;
+      }
+      const listWrap = document.createElement("div");
+      listWrap.className = "cp-skill-list";
+      co.entries.forEach((ent) => {
+        listWrap.appendChild(buildCompanionCard(ent, state));
+      });
+      mount.appendChild(listWrap);
+    }
+
+    async function openCompanionsModal() {
+      const modal = document.getElementById("modal-companions");
+      const loading = document.getElementById("co-modal-loading");
+      const mount = document.getElementById("co-modal-mount");
+      if (!modal || !loading || !mount) return;
+      companionUiExpandedId = null;
+      openModalOnly("modal-companions");
+      loading.classList.remove("hidden");
+      mount.classList.add("hidden");
+      mount.innerHTML = "";
+      errEl.textContent = "";
+      try {
+        const res = await fetch(API_ME, { headers: authHeaders(false) });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          closeModal("modal-companions");
+          showAuth();
+          return;
+        }
+        if (!res.ok) {
+          loading.classList.add("hidden");
+          mount.classList.remove("hidden");
+          mount.innerHTML = "<p class=\"cp-empty\">讀取失敗</p>";
+          return;
+        }
+        currentGameState = data.game_state;
+        if (data.game_state && data.game_state.stats) {
+          stats = normalizeStatsFromServer(data.game_state.stats);
+          setBars();
+        }
+        renderCompanionsModal(data.game_state);
+        loading.classList.add("hidden");
+        mount.classList.remove("hidden");
+      } catch (e) {
+        loading.classList.add("hidden");
+        mount.classList.remove("hidden");
+        mount.innerHTML = "<p class=\"cp-empty\">" + String(e.message || e) + "</p>";
+      }
+    }
+
+    function renderQuestRoster(mount, quests) {
+      if (!mount) return;
+      mount.innerHTML = "";
+      const q = quests && typeof quests === "object" && Array.isArray(quests.entries) ? quests : { entries: [] };
+      if (!q.entries.length) {
+        const p = document.createElement("p");
+        p.className = "quest-roster-empty";
+        p.textContent = "冊上無名，靜候下一道因果。";
+        mount.appendChild(p);
+        return;
+      }
+      q.entries.forEach((e) => {
+        if (!e || typeof e !== "object") return;
+        const id = String(e.id || "").trim();
+        const branch = e.branch === "side" ? "side" : "main";
+        const status = e.status === "shelved" ? "shelved" : "tracking";
+        const card = document.createElement("div");
+        card.className = "quest-card";
+        card.dataset.questId = id;
+        const stripe = document.createElement("div");
+        stripe.className = "quest-card-stripe " + (branch === "main" ? "quest-card-stripe--main" : "quest-card-stripe--side");
+        const core = document.createElement("div");
+        core.className = "quest-card-core";
+        const titleRow = document.createElement("div");
+        titleRow.className = "quest-card-title-row";
+        const nameEl = document.createElement("span");
+        nameEl.className = "quest-card-name";
+        nameEl.textContent = e.title != null && String(e.title).trim() ? String(e.title).trim() : "（無名因果）";
+        titleRow.appendChild(nameEl);
+        if (e.causal_shift === true) {
+          const shift = document.createElement("span");
+          shift.className = "quest-causal-shift";
+          shift.textContent = "[因果已變]";
+          titleRow.appendChild(shift);
+        }
+        const desc = document.createElement("p");
+        desc.className = "quest-card-desc";
+        desc.textContent = e.description != null && String(e.description).trim() ? String(e.description).trim() : "——";
+        core.appendChild(titleRow);
+        core.appendChild(desc);
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "quest-card-action";
+        if (status === "tracking") {
+          btn.textContent = "擱置";
+          btn.dataset.questAction = "shelve";
+        } else {
+          btn.textContent = "重啟";
+          btn.dataset.questAction = "resume";
+        }
+        if (!id) btn.disabled = true;
+        card.appendChild(stripe);
+        card.appendChild(core);
+        card.appendChild(btn);
+        mount.appendChild(card);
+      });
+    }
+
+    async function onQuestTrackClick(questId, action) {
+      const id = String(questId || "").trim();
+      if (!id) return;
+      const act = action === "resume" ? "resume" : "shelve";
+      errEl.textContent = "";
+      const mount = document.getElementById("quest-roster-mount");
+      const btns = mount ? mount.querySelectorAll("button.quest-card-action") : [];
+      btns.forEach((b) => { b.disabled = true; });
+      try {
+        const res = await fetch(API_QUEST_TRACK, {
+          method: "POST",
+          headers: authHeaders(true),
+          body: JSON.stringify({ quest_id: id, action: act }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          closeModal("modal-quests");
+          showAuth();
+          errEl.textContent = "登入已失效，請重新登入";
+          return;
+        }
+        if (!res.ok) {
+          const d = data.detail;
+          const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || res.statusText);
+          errEl.textContent = msg || "操作失敗";
+          return;
+        }
+        if (data.game_state) {
+          applyGameState(data.game_state, { animateLastAssistant: false });
+          if (mount && !mount.classList.contains("hidden")) renderQuestRoster(mount, data.game_state.quests);
+        }
+      } catch (e) {
+        errEl.textContent = String(e.message || e);
+      } finally {
+        if (mount && !mount.classList.contains("hidden")) {
+          mount.querySelectorAll("button.quest-card-action").forEach((b) => { b.disabled = false; });
+        }
+      }
+    }
+
+    async function openQuestsModal() {
+      const modal = document.getElementById("modal-quests");
+      const loading = document.getElementById("quest-roster-loading");
+      const mount = document.getElementById("quest-roster-mount");
+      if (!modal || !loading || !mount) return;
+      openModalOnly("modal-quests");
+      loading.classList.remove("hidden");
+      mount.classList.add("hidden");
+      mount.innerHTML = "";
+      errEl.textContent = "";
+      try {
+        const res = await fetch(API_QUESTS_OPEN, {
+          method: "POST",
+          headers: authHeaders(true),
+          body: "{}",
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          closeModal("modal-quests");
+          showAuth();
+          errEl.textContent = "登入已失效，請重新登入";
+          return;
+        }
+        if (!res.ok) {
+          const d = data.detail;
+          const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || res.statusText);
+          loading.classList.add("hidden");
+          mount.classList.remove("hidden");
+          mount.innerHTML = "<p class=\"quest-roster-empty\">" + escapeHtml(msg || "讀取名冊失敗") + "</p>";
+          errEl.textContent = msg || "讀取名冊失敗";
+          return;
+        }
+        if (data.game_state) applyGameState(data.game_state, { animateLastAssistant: false });
+        renderQuestRoster(mount, data.quests);
+        loading.classList.add("hidden");
+        mount.classList.remove("hidden");
+      } catch (e) {
+        loading.classList.add("hidden");
+        mount.classList.remove("hidden");
+        const m = String(e.message || e);
+        mount.innerHTML = "<p class=\"quest-roster-empty\">" + escapeHtml(m) + "</p>";
+        errEl.textContent = m;
+      }
+    }
+
+    function normalizeStatsFromServer(s) {
+      const out = { ...DEFAULT_STATS };
+      if (!s || typeof s !== "object") return out;
+      STAT_KEYS.forEach((k) => {
+        if (s[k] == null || s[k] === "") return;
+        const n = Number(s[k]);
+        if (!Number.isNaN(n)) out[k] = Math.max(1, Math.min(100, Math.round(n)));
+      });
+      return out;
+    }
+
+    function stripAttrFromNarrative(text) {
+      return String(text).replace(/\s*\[ATTR:\s*[^\]]+\]\s*$/i, "").trim();
+    }
+
+    function escapeHtml(s) {
+      return String(s)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function wrapStoryBracketHeadings(escapedPlain) {
+      return escapedPlain.split(/\r\n|\r|\n/).map((line) => {
+        const t = line.trim();
+        if (/^【[^】]{1,48}】$/.test(t)) {
+          return `<span class="story-narrative-heading">${t}</span>`;
+        }
+        return line;
+      }).join("<br />");
+    }
+
+    function narrativeToSafeHtml(text) {
+      return wrapStoryBracketHeadings(escapeHtml(String(text)));
+    }
+
+    function setNarrativeHtml(el, text) {
+      if (!el) return;
+      el.classList.add("story-segment-body--rich");
+      el.innerHTML = narrativeToSafeHtml(text);
+    }
+
+    function unwrapMarkdownFence(text) {
+      let t = String(text || "").trim();
+      const m = t.match(/^```(?:json)?\s*([\s\S]*?)```$/i);
+      if (m) return m[1].trim();
+      return t;
+    }
+
+    function extractFirstBalancedJsonObject(text) {
+      const s = String(text || "");
+      const start = s.indexOf("{");
+      if (start < 0) return null;
+      let depth = 0;
+      let inString = false;
+      let esc = false;
+      for (let i = start; i < s.length; i++) {
+        const c = s[i];
+        if (inString) {
+          if (esc) esc = false;
+          else if (c === "\\") esc = true;
+          else if (c === "\"") inString = false;
+          continue;
+        }
+        if (c === "\"") {
+          inString = true;
+          continue;
+        }
+        if (c === "{") depth++;
+        else if (c === "}") {
+          depth--;
+          if (depth === 0) return s.slice(start, i + 1);
+        }
+      }
+      return null;
+    }
+
+    function tryParseAiJsonPayload(raw) {
+      const t = unwrapMarkdownFence(String(raw || "").trim());
+      if (!t) return { ok: false, value: null };
+      try {
+        const o = JSON.parse(t);
+        if (o && typeof o === "object" && !Array.isArray(o)) return { ok: true, value: o };
+      } catch (_) { /* fall through */ }
+      const blob = extractFirstBalancedJsonObject(t);
+      if (blob) {
+        try {
+          const o = JSON.parse(blob);
+          if (o && typeof o === "object" && !Array.isArray(o)) return { ok: true, value: o };
+        } catch (_) { /* ignore */ }
+      }
+      return { ok: false, value: null };
+    }
+
+    function stripBalancedJsonObjectsFromText(text) {
+      let t = String(text || "").trim();
+      for (let n = 0; n < 48; n++) {
+        const blob = extractFirstBalancedJsonObject(t);
+        if (!blob) break;
+        try {
+          const o = JSON.parse(blob);
+          if (o !== null && typeof o === "object") {
+            t = t.replace(blob, " ").replace(/\s+/g, " ").trim();
+            continue;
+          }
+        } catch (_) { /* ignore */ }
+        break;
+      }
+      return t.trim();
+    }
+
+    function mergeParsedIntoCurrentGameState(parsed) {
+      if (!parsed || typeof parsed !== "object" || !currentGameState || typeof currentGameState !== "object") return;
+      if (parsed.stats && typeof parsed.stats === "object") {
+        currentGameState.stats = { ...(currentGameState.stats || {}) };
+        STAT_KEYS.forEach((k) => {
+          if (parsed.stats[k] == null || parsed.stats[k] === "") return;
+          const n = Number(parsed.stats[k]);
+          if (!Number.isNaN(n)) currentGameState.stats[k] = Math.max(1, Math.min(100, Math.round(n)));
+        });
+      }
+      if (parsed.inventory != null && typeof parsed.inventory === "object") {
+        currentGameState.inventory = parsed.inventory;
+      } else if (currentGameState.inventory && typeof currentGameState.inventory === "object") {
+        if (parsed.currencies != null && typeof parsed.currencies === "object") {
+          currentGameState.inventory = {
+            ...currentGameState.inventory,
+            currencies: { ...(currentGameState.inventory.currencies || {}), ...parsed.currencies },
+          };
+        }
+        if (parsed.items != null && Array.isArray(parsed.items)) {
+          currentGameState.inventory = { ...currentGameState.inventory, items: parsed.items };
+        }
+      }
+      if (parsed.skills != null) currentGameState.skills = parsed.skills;
+      else if (parsed.martial_arts != null) currentGameState.skills = parsed.martial_arts;
+      if (parsed.companions != null) {
+        const cur = normalizeClientCompanions(currentGameState.companions);
+        const rows = normalizeClientCompanions(parsed.companions).entries;
+        rows.forEach((row) => {
+          const i = cur.entries.findIndex((x) => x.id === row.id || x.name === row.name);
+          if (i < 0) cur.entries.push(row);
+          else cur.entries[i] = { ...cur.entries[i], ...row, id: cur.entries[i].id };
+        });
+        currentGameState.companions = cur;
+      }
+      if (parsed.current_location != null && typeof parsed.current_location === "object") {
+        currentGameState.current_location = {
+          ...normalizeLocationFromServer(currentGameState.current_location),
+          ...normalizeLocationFromServer(parsed.current_location),
+        };
+      }
+      if (parsed.quests != null && typeof parsed.quests === "object") {
+        currentGameState.quests = { ...(currentGameState.quests || {}), ...parsed.quests };
+      }
+      if (parsed.rank != null && String(parsed.rank).trim()) {
+        currentGameState.rank = String(parsed.rank).trim().slice(0, 48);
+      }
+      if (parsed.status != null && String(parsed.status).trim()) {
+        currentGameState.status = String(parsed.status).trim().slice(0, 48);
+      }
+      if (parsed.mental_state != null && String(parsed.mental_state).trim()) {
+        currentGameState.mental_state = String(parsed.mental_state).trim().slice(0, 48);
+      }
+      stats = normalizeStatsFromServer(currentGameState.stats);
+      setBars();
+    }
+
+    function parseAssistantDisplayBundle(content) {
+      const raw = String(content || "");
+      const pr = tryParseAiJsonPayload(raw);
+      let choicesFromJson = [];
+      if (pr.ok && pr.value && Array.isArray(pr.value.choices)) {
+        choicesFromJson = pr.value.choices.map((x) => String(x).trim()).filter(Boolean);
+      }
+      let narrative = "";
+      if (pr.ok && pr.value && typeof pr.value.narrative === "string") {
+        narrative = stripAttrFromNarrative(pr.value.narrative).trim();
+      }
+      if (!narrative && !pr.ok) {
+        narrative = stripBalancedJsonObjectsFromText(stripAttrFromNarrative(raw).trim()).trim();
+        if (!narrative) narrative = stripAttrFromNarrative(raw).trim();
+      }
+      return { narrative, choicesFromJson, parsed: pr.ok ? pr.value : null, parseOk: pr.ok };
+    }
+
+    function closeModal(modalId) {
+      const el = document.getElementById(modalId);
+      if (!el) return;
+      el.classList.add("hidden");
+      el.setAttribute("aria-hidden", "true");
+      if (modalId === "modal-quests") {
+        void fetch(API_QUESTS_ACK_CAUSAL, {
+          method: "POST",
+          headers: authHeaders(true),
+          body: "{}",
+        })
+          .then((r) => r.json().catch(() => ({})))
+          .then((data) => {
+            if (data && data.game_state) applyGameState(data.game_state, { animateLastAssistant: false });
+          })
+          .catch(() => {});
+      }
+    }
+
+    function openModalOnly(modalId) {
+      const el = document.getElementById(modalId);
+      if (!el) return;
+      el.classList.remove("hidden");
+      el.setAttribute("aria-hidden", "false");
+    }
+
+    document.querySelectorAll("[data-close]").forEach((node) => {
+      node.addEventListener("click", () => closeModal(node.getAttribute("data-close")));
+    });
+
+    document.getElementById("modal-quests")?.addEventListener("click", (ev) => {
+      const btn = ev.target.closest("button.quest-card-action");
+      if (!btn || btn.disabled) return;
+      const card = btn.closest(".quest-card");
+      const id = card && card.dataset.questId;
+      const action = btn.dataset.questAction;
+      if (id && action) void onQuestTrackClick(id, action);
+    });
+    document.getElementById("btn-quest-roster-close")?.addEventListener("click", () => {
+      closeModal("modal-quests");
+    });
+
+    document.getElementById("btn-realm-shuttle")?.addEventListener("click", () => {
+      openModalOnly("modal-realm-shuttle");
+    });
+    document.getElementById("modal-realm-shuttle")?.addEventListener("click", (e) => {
+      const opt = e.target.closest(".realm-shuttle-option[data-realm]");
+      if (!opt || opt.disabled) return;
+      const realm = opt.getAttribute("data-realm");
+      if (realm) void realmShuttle(realm);
+    });
+
+    const CHOICE_LINE_RE = /^\s*(\d+)[.．、]\s*(.+)$/;
+    const CHOICE_RESOURCE_TAG_RE = /[\[［][^\]］]*(?:物品|武學|同伴|消耗)[^\]］]*[\]］]/;
+
+    function choiceLineHasResourceTag(line) {
+      return CHOICE_RESOURCE_TAG_RE.test(String(line || ""));
+    }
+
+    function decorateChoiceButton(btn, line, modalChoice) {
+      const base = modalChoice ? "game-modal-choice-btn" : "story-choice-btn";
+      btn.className = base + (choiceLineHasResourceTag(line) ? " " + base + "--tagged" : "");
+    }
+
+    function splitNarrativeAndChoices(text) {
+      const rawLines = String(stripAttrFromNarrative(text)).split(/\r?\n/);
+      let firstChoiceIdx = -1;
+      for (let i = 0; i < rawLines.length; i++) {
+        const t = rawLines[i].trim();
+        if (!t) continue;
+        if (CHOICE_LINE_RE.test(t)) {
+          firstChoiceIdx = i;
+          break;
+        }
+      }
+      if (firstChoiceIdx < 0) return { body: text, choices: [] };
+      const choiceLines = [];
+      for (let i = firstChoiceIdx; i < rawLines.length; i++) {
+        const t = rawLines[i].trim();
+        if (!t) continue;
+        if (CHOICE_LINE_RE.test(t)) choiceLines.push(t);
+        else break;
+      }
+      const body = rawLines.slice(0, firstChoiceIdx).join("\n").trimEnd();
+      return { body, choices: choiceLines };
+    }
+
+    function storyChoicesFromBundle(bundle) {
+      const split = splitNarrativeAndChoices(bundle.narrative);
+      if (bundle.choicesFromJson.length > 0) {
+        const lines = bundle.choicesFromJson.map((c, i) => String(i + 1) + ". " + c);
+        return { body: split.body, choices: lines };
+      }
+      return split;
+    }
+
+    function parseAssistantNarrative(content) {
+      return parseAssistantDisplayBundle(content).narrative;
+    }
+
+    function filterMessagesForStory(msgs) {
+      if (!Array.isArray(msgs)) return [];
+      const out = [];
+      for (let i = 0; i < msgs.length; i++) {
+        const m = msgs[i];
+        if (m.role === "user" && typeof m.content === "string" && m.content.includes("【面板｜")) {
+          if (i + 1 < msgs.length && msgs[i + 1].role === "assistant") i++;
+          continue;
+        }
+        out.push(m);
+      }
+      return out;
+    }
+
+    function formatUserActionLine(raw) {
+      if (!raw) return "";
+      const s = String(raw).replace(/^【玩家行動】\s*/, "").trim();
+      return s || String(raw).trim();
+    }
+
+    function clearStoryTypewriterScrollSchedule() {
+      if (storyTypewriterScrollRaf != null) {
+        cancelAnimationFrame(storyTypewriterScrollRaf);
+        storyTypewriterScrollRaf = null;
+      }
+      storyTwScrollAnchorEl = null;
+    }
+
+    function scrollStoryDuringTypewriter(anchorEl) {
+      if (!storyScrollEl || !anchorEl) return;
+      storyTwScrollAnchorEl = anchorEl;
+      if (storyTypewriterScrollRaf != null) return;
+      storyTypewriterScrollRaf = requestAnimationFrame(() => {
+        storyTypewriterScrollRaf = null;
+        const el = storyTwScrollAnchorEl;
+        storyTwScrollAnchorEl = null;
+        if (!storyScrollEl || !el || !el.isConnected) return;
+        const sc = storyScrollEl;
+        const pad = Math.min(40, Math.max(20, sc.clientHeight * 0.08));
+        const ease = 0.94;
+        const maxSteps = 6;
+        for (let step = 0; step < maxSteps; step++) {
+          if (!el.isConnected) break;
+          const bodyRect = el.getBoundingClientRect();
+          const scRect = sc.getBoundingClientRect();
+          let delta = 0;
+          if (bodyRect.bottom > scRect.bottom - pad) {
+            delta += bodyRect.bottom - (scRect.bottom - pad);
+          }
+          if (bodyRect.top < scRect.top + pad) {
+            delta -= (scRect.top + pad) - bodyRect.top;
+          }
+          const maxScroll = Math.max(0, sc.scrollHeight - sc.clientHeight);
+          const instantTarget = Math.max(0, Math.min(sc.scrollTop + delta, maxScroll));
+          const before = sc.scrollTop;
+          sc.scrollTop = before + (instantTarget - before) * ease;
+          if (Math.abs(sc.scrollTop - instantTarget) < 2.5 && bodyRect.bottom <= scRect.bottom - pad * 0.9) break;
+          if (Math.abs(sc.scrollTop - before) < 0.5) break;
+        }
+      });
+    }
+
+    function scrollStoryToBottom() {
+      if (!storyScrollEl) return;
+      clearStoryTypewriterScrollSchedule();
+      requestAnimationFrame(() => {
+        const el = storyScrollEl;
+        const top = el.scrollHeight;
+        try {
+          el.scrollTo({ top, behavior: "smooth" });
+        } catch (_) {
+          el.scrollTop = top;
+        }
+        requestAnimationFrame(() => {
+          if (Math.abs(el.scrollHeight - el.scrollTop - el.clientHeight) > 4) {
+            el.scrollTop = el.scrollHeight;
+          }
+          requestAnimationFrame(() => {
+            if (!storyScrollEl) return;
+            const e2 = storyScrollEl;
+            if (Math.abs(e2.scrollHeight - e2.scrollTop - e2.clientHeight) > 6) {
+              e2.scrollTop = e2.scrollHeight;
+            }
+          });
+        });
+      });
+    }
+
+    function appendChronicleDivider() {
+      if (!storyScrollEl || storyScrollEl.children.length === 0) return;
+      const div = document.createElement("div");
+      div.className = "story-chronicle-divider";
+      div.setAttribute("role", "presentation");
+      storyScrollEl.appendChild(div);
+    }
+
+    function splitNarrativeForTypewriter(text) {
+      const s = String(text || "");
+      const lines = [];
+      let buf = "";
+      const pushBuf = () => {
+        const t = buf.trim();
+        if (t) lines.push(t);
+        buf = "";
+      };
+      for (let i = 0; i < s.length; i++) {
+        const c = s[i];
+        if (c === "\r") continue;
+        if (c === "\n") {
+          pushBuf();
+          continue;
+        }
+        buf += c;
+        if (/[。！？!?]/.test(c)) pushBuf();
+      }
+      pushBuf();
+      return lines;
+    }
+
+    function typewriterHtmlWithTail(acc) {
+      const g = [...acc];
+      if (g.length === 0) return "";
+      const last = g.pop();
+      const rest = g.join("");
+      const base = narrativeToSafeHtml(rest);
+      if (last === "\n") return base + "<br /><span class=\"story-tw-tail\">\u200b</span>";
+      return base + "<span class=\"story-tw-tail\">" + escapeHtml(last) + "</span>";
+    }
+
+    function detachStoryTypewriterSkip() {
+      if (storyTypewriterSkipHandler && gameRoot) {
+        gameRoot.removeEventListener("click", storyTypewriterSkipHandler, true);
+        storyTypewriterSkipHandler = null;
+      }
+      if (gameRoot) gameRoot.classList.remove("game-root--tw-skip");
+    }
+
+    function revealStoryChoicesFadeIn(choiceLines) {
+      if (!storyChoicesEl) return;
+      storyChoicesEl.classList.remove("story-choices--await-reveal", "story-choices--fade-reveal");
+      storyChoicesEl.innerHTML = "";
+      if (!choiceLines || !choiceLines.length) return;
+      choiceLines.forEach((line) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        decorateChoiceButton(btn, line, false);
+        btn.textContent = line;
+        btn.addEventListener("click", () => takeTurn(line));
+        storyChoicesEl.appendChild(btn);
+      });
+      storyChoicesEl.classList.add("story-choices--await-reveal");
+      void storyChoicesEl.offsetHeight;
+      requestAnimationFrame(() => {
+        storyChoicesEl.classList.remove("story-choices--await-reveal");
+        storyChoicesEl.classList.add("story-choices--fade-reveal");
+      });
+    }
+
+    function runStoryTypewriter(bodyEl, fullText, choiceLines) {
+      if (!bodyEl || !storyScrollEl) return;
+      const myGen = storyTypewriterGeneration;
+      const chunks = splitNarrativeForTypewriter(fullText);
+      const TW_CHAR_DELAY_MIN_MS = 10;
+      const TW_CHAR_DELAY_SPAN_MS = 6;
+      const TW_LINE_PAUSE_MIN_MS = 200;
+      const TW_LINE_PAUSE_SPAN_MS = 101;
+      const TW_CHOICES_AFTER_DONE_MS = 300;
+      const charDelayMs = () => TW_CHAR_DELAY_MIN_MS + Math.floor(Math.random() * TW_CHAR_DELAY_SPAN_MS);
+      const linePauseMs = () => TW_LINE_PAUSE_MIN_MS + Math.floor(Math.random() * TW_LINE_PAUSE_SPAN_MS);
+
+      function endTypingUi() {
+        clearStoryTypewriterScrollSchedule();
+        storyScrollEl.classList.remove("story-scroll--tw-skip");
+        bodyEl.classList.remove("story-segment-body--typing");
+        detachStoryTypewriterSkip();
+      }
+
+      function finishComplete() {
+        if (storyTypewriterGeneration !== myGen) return;
+        bodyEl.innerHTML = narrativeToSafeHtml(fullText);
+        endTypingUi();
+        scrollStoryToBottom();
+        const genAtDone = myGen;
+        setTimeout(() => {
+          if (storyTypewriterGeneration !== genAtDone) return;
+          revealStoryChoicesFadeIn(choiceLines);
+          scrollStoryToBottom();
+        }, TW_CHOICES_AFTER_DONE_MS);
+      }
+
+      function skipToEnd() {
+        if (storyTypewriterGeneration !== myGen) return;
+        storyTypewriterGeneration++;
+        bodyEl.innerHTML = narrativeToSafeHtml(fullText);
+        endTypingUi();
+        revealStoryChoicesFadeIn(choiceLines);
+        scrollStoryToBottom();
+      }
+
+      if (!fullText || !String(fullText).trim() || chunks.length === 0) {
+        bodyEl.innerHTML = fullText ? narrativeToSafeHtml(String(fullText)) : "";
+        endTypingUi();
+        revealStoryChoicesFadeIn(choiceLines);
+        scrollStoryToBottom();
+        return;
+      }
+
+      bodyEl.classList.add("story-segment-body--rich", "story-segment-body--typing");
+      bodyEl.innerHTML = "";
+      storyScrollEl.classList.add("story-scroll--tw-skip");
+      if (gameRoot) gameRoot.classList.add("game-root--tw-skip");
+      detachStoryTypewriterSkip();
+      storyTypewriterSkipHandler = (ev) => {
+        if (storyTypewriterGeneration !== myGen) return;
+        if (!bodyEl.classList.contains("story-segment-body--typing")) return;
+        if (ev.target.closest && ev.target.closest(".game-modal:not(.hidden)")) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        skipToEnd();
+      };
+      if (gameRoot) gameRoot.addEventListener("click", storyTypewriterSkipHandler, true);
+
+      let acc = "";
+      let ci = 0;
+
+      function runChunk() {
+        if (storyTypewriterGeneration !== myGen) return;
+        if (ci >= chunks.length) {
+          finishComplete();
+          return;
+        }
+        const chunk = chunks[ci];
+        const chars = [...chunk];
+        let gi = 0;
+        function tick() {
+          if (storyTypewriterGeneration !== myGen) return;
+          if (gi >= chars.length) {
+            ci++;
+            setTimeout(runChunk, linePauseMs());
+            return;
+          }
+          acc += chars[gi];
+          gi++;
+          bodyEl.innerHTML = typewriterHtmlWithTail(acc);
+          scrollStoryDuringTypewriter(bodyEl);
+          setTimeout(tick, charDelayMs());
+        }
+        tick();
+      }
+      runChunk();
+    }
+
+    function renderStoryFromState(gs, opts) {
+      opts = opts || {};
+      const animateLastAssistant = !!opts.animateLastAssistant;
+      if (!storyScrollEl || !storyChoicesEl) return;
+      detachStoryTypewriterSkip();
+      clearStoryTypewriterScrollSchedule();
+      storyScrollEl.classList.remove("story-scroll--tw-skip");
+      storyTypewriterGeneration++;
+      storyScrollEl.innerHTML = "";
+      storyChoicesEl.innerHTML = "";
+      storyChoicesEl.classList.remove("story-choices--await-reveal", "story-choices--fade-reveal");
+      const filtered = filterMessagesForStory(gs.messages || []);
+      if (filtered.length === 0) {
+        scrollStoryToBottom();
+        return;
+      }
+      let lastAi = -1;
+      for (let i = filtered.length - 1; i >= 0; i--) {
+        if (filtered[i].role === "assistant") {
+          lastAi = i;
+          break;
+        }
+      }
+      for (let i = 0; i < filtered.length; i++) {
+        const m = filtered[i];
+        if (m.role === "user") {
+          const line = formatUserActionLine(m.content);
+          if (!line) continue;
+          appendChronicleDivider();
+          const div = document.createElement("div");
+          div.className = "story-user-line";
+          div.textContent = "◆ " + line;
+          storyScrollEl.appendChild(div);
+          continue;
+        }
+        if (m.role !== "assistant") continue;
+        appendChronicleDivider();
+        const bundle = parseAssistantDisplayBundle(m.content || "");
+        const { body, choices } = storyChoicesFromBundle(bundle);
+        const seg = document.createElement("div");
+        seg.className = "story-segment";
+        const bodyDiv = document.createElement("div");
+        bodyDiv.className = "story-segment-body";
+        let displayBody;
+        if (i === lastAi && choices.length > 0) {
+          displayBody = body;
+        } else {
+          displayBody = choices.length > 0 ? bundle.narrative : (body || bundle.narrative);
+        }
+        const animateThis = animateLastAssistant && i === lastAi;
+        if (animateThis) {
+          if (String(displayBody || "").trim()) {
+            seg.appendChild(bodyDiv);
+            storyScrollEl.appendChild(seg);
+            runStoryTypewriter(bodyDiv, displayBody, choices);
+          } else {
+            bodyDiv.classList.add("story-segment-body--rich");
+            bodyDiv.innerHTML = "";
+            seg.appendChild(bodyDiv);
+            storyScrollEl.appendChild(seg);
+            revealStoryChoicesFadeIn(choices);
+            scrollStoryToBottom();
+          }
+        } else {
+          if (i === lastAi && choices.length > 0) {
+            setNarrativeHtml(bodyDiv, body);
+          } else {
+            const showText = choices.length > 0 ? bundle.narrative : (body || bundle.narrative);
+            setNarrativeHtml(bodyDiv, showText);
+          }
+          seg.appendChild(bodyDiv);
+          storyScrollEl.appendChild(seg);
+        }
+      }
+      if (lastAi >= 0 && !animateLastAssistant) {
+        const bundle = parseAssistantDisplayBundle(filtered[lastAi].content || "");
+        const { choices } = storyChoicesFromBundle(bundle);
+        choices.forEach((line) => {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          decorateChoiceButton(btn, line, false);
+          btn.textContent = line;
+          btn.addEventListener("click", () => takeTurn(line));
+          storyChoicesEl.appendChild(btn);
+        });
+      }
+      scrollStoryToBottom();
+    }
+
+    function fillModalWithChoices(modal, fullText) {
+      const bodyEl = modal.querySelector(".game-modal-body");
+      const choicesEl = modal.querySelector(".game-modal-choices");
+      if (!bodyEl || !choicesEl) return;
+      choicesEl.innerHTML = "";
+      bodyEl.classList.remove("game-modal-body--rich");
+      const bundle = parseAssistantDisplayBundle(String(fullText || ""));
+      const { body, choices: choiceLines } = storyChoicesFromBundle(bundle);
+      bodyEl.classList.add("game-modal-body--rich");
+      if (choiceLines.length === 0) {
+        bodyEl.innerHTML = narrativeToSafeHtml(bundle.narrative);
+        return;
+      }
+      bodyEl.innerHTML = narrativeToSafeHtml(body || bundle.narrative);
+      const modalId = modal.id;
+      choiceLines.forEach((line) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        decorateChoiceButton(btn, line, true);
+        btn.textContent = line;
+        btn.addEventListener("click", () => {
+          closeModal(modalId);
+          takeTurn(line);
+        });
+        choicesEl.appendChild(btn);
+      });
+    }
+
+    async function openPanel(panel) {
+      if (panel === "martial") {
+        await openMartialModal();
+        return;
+      }
+      if (panel === "inventory") {
+        await openInventoryModal();
+        return;
+      }
+      if (panel === "companions") {
+        await openCompanionsModal();
+        return;
+      }
+      if (panel === "quests") {
+        await openQuestsModal();
+        return;
+      }
+      const modalId = "modal-" + panel;
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      const loading = modal.querySelector(".game-modal-loading");
+      const bodyEl = modal.querySelector(".game-modal-body");
+      const choicesEl = modal.querySelector(".game-modal-choices");
+      if (!bodyEl) {
+        errEl.textContent = "此面板尚未實作";
+        return;
+      }
+      openModalOnly(modalId);
+      loading.classList.remove("hidden");
+      bodyEl.classList.remove("game-modal-body--rich");
+      bodyEl.textContent = "";
+      if (choicesEl) choicesEl.innerHTML = "";
+      errEl.textContent = "";
+      buttons.forEach((b) => { b.disabled = true; });
+      document.querySelectorAll("#story-choices .story-choice-btn").forEach((b) => { b.disabled = true; });
+      try {
+        const res = await fetch(API_PANEL, {
+          method: "POST",
+          headers: authHeaders(true),
+          body: JSON.stringify({ panel }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          closeModal(modalId);
+          showAuth();
+          errEl.textContent = "登入已失效，請重新登入";
+          return;
+        }
+        if (!res.ok) {
+          const d = data.detail;
+          const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || res.statusText);
+          const m = msg || "讀取失敗";
+          bodyEl.classList.remove("game-modal-body--rich");
+          bodyEl.textContent = m;
+          if (choicesEl) choicesEl.innerHTML = "";
+          errEl.textContent = m;
+        } else {
+          fillModalWithChoices(modal, data.display || "");
+        }
+      } catch (e) {
+        const m = String(e.message || e);
+        if (!bodyEl.textContent) {
+          bodyEl.classList.remove("game-modal-body--rich");
+          bodyEl.textContent = m;
+        }
+        if (choicesEl) choicesEl.innerHTML = "";
+        errEl.textContent = m;
+      } finally {
+        loading.classList.add("hidden");
+        buttons.forEach((b) => { b.disabled = false; });
+        document.querySelectorAll("#story-choices .story-choice-btn").forEach((b) => { b.disabled = false; });
+      }
+    }
+
+    function getToken() {
+      return localStorage.getItem(TOKEN_KEY);
+    }
+
+    function authHeaders(withJson) {
+      const h = {};
+      if (withJson) h["Content-Type"] = "application/json";
+      const t = getToken();
+      if (t) h.Authorization = "Bearer " + t;
+      return h;
+    }
+
+    function syncSidebarIdentityRow() {
+      const rk = document.getElementById("v-rank");
+      const rh = document.getElementById("v-rank-hint");
+      const st = document.getElementById("v-status");
+      const ms = document.getElementById("v-mental-state");
+      const sn = document.getElementById("v-player-name-sidebar");
+      if (sn && displayPlayerName) {
+        const nm = (displayPlayerName.textContent || "").trim();
+        sn.textContent = nm || "—";
+      }
+      if (!currentGameState) {
+        if (rk) rk.textContent = "凡胎肉身";
+        if (rh) {
+          rh.title = "當前修為尚未以核心心法為基（凡胎／雜學或僅內外門技）";
+          rh.setAttribute("aria-label", rh.title);
+        }
+        if (st) st.textContent = "健康";
+        if (ms) ms.textContent = "清醒";
+        return;
+      }
+      const r = currentGameState.rank;
+      const s = currentGameState.status;
+      const m = currentGameState.mental_state;
+      const core = (currentGameState.rank_core_heart != null && String(currentGameState.rank_core_heart).trim())
+        ? String(currentGameState.rank_core_heart).trim()
+        : "";
+      if (rk) rk.textContent = (r != null && String(r).trim()) ? String(r).trim() : "凡胎肉身";
+      if (rh) {
+        rh.title = core
+          ? "當前修為由「" + core + "」支撐"
+          : "當前修為尚未以核心心法為基（凡胎／雜學或僅內外門技）";
+        rh.setAttribute("aria-label", rh.title);
+      }
+      if (st) st.textContent = (s != null && String(s).trim()) ? String(s).trim() : "健康";
+      if (ms) ms.textContent = (m != null && String(m).trim()) ? String(m).trim() : "清醒";
+    }
+
+    function setBars() {
+      STAT_KEYS.forEach((k) => {
+        const v = stats[k] ?? DEFAULT_STATS[k];
+        const vel = document.getElementById("v-" + k);
+        const bel = document.getElementById("b-" + k);
+        if (vel) vel.textContent = String(v);
+        if (bel) bel.style.width = v + "%";
+      });
+      if (currentGameState) setLocationDisplay(currentGameState.current_location);
+      syncSidebarIdentityRow();
+    }
+
+    function normalizeLocationFromServer(loc) {
+      const out = { ...DEFAULT_LOCATION };
+      if (!loc || typeof loc !== "object") return out;
+      LOCATION_KEYS.forEach((k) => {
+        if (loc[k] == null || loc[k] === "") return;
+        const s = String(loc[k]).trim();
+        if (s) out[k] = s;
+      });
+      return out;
+    }
+
+    function setLocationDisplay(loc) {
+      const n = normalizeLocationFromServer(loc);
+      LOCATION_KEYS.forEach((k) => {
+        const el = document.getElementById(LOCATION_VALUE_IDS[k]);
+        if (el) el.textContent = n[k] || "—";
+      });
+    }
+
+    function applyGameState(gs, opts) {
+      if (!gs) return;
+      currentGameState = gs;
+      if (gs.stats && typeof gs.stats === "object") {
+        stats = normalizeStatsFromServer(gs.stats);
+      }
+      setBars();
+      renderStoryFromState(gs, opts);
+      const mm = document.getElementById("modal-martial");
+      const mMount = document.getElementById("ma-modal-mount");
+      if (mm && mMount && !mm.classList.contains("hidden") && !mMount.classList.contains("hidden")) {
+        renderMartialModal(gs);
+      }
+    }
+
+    function showAuth() {
+      authOverlay.classList.remove("hidden");
+      gameRoot.classList.add("hidden");
+    }
+
+    function showGame() {
+      authOverlay.classList.add("hidden");
+      gameRoot.classList.remove("hidden");
+    }
+
+    function setLoading(on) {
+      buttons.forEach((b) => { b.disabled = on; });
+      customInput.disabled = on;
+      sendCustomBtn.disabled = on;
+      document.querySelectorAll("#story-choices .story-choice-btn").forEach((b) => { b.disabled = on; });
+      const brs = document.getElementById("btn-realm-shuttle");
+      if (brs) brs.disabled = on;
+      document.querySelectorAll(".realm-shuttle-option").forEach((b) => { b.disabled = on; });
+    }
+
+    async function realmShuttle(realmId) {
+      errEl.textContent = "";
+      setLoading(true);
+      try {
+        const res = await fetch(API_REALM_SHUTTLE, {
+          method: "POST",
+          headers: authHeaders(true),
+          body: JSON.stringify({ realm: String(realmId) }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          showAuth();
+          throw new Error("登入已失效，請重新登入");
+        }
+        if (!res.ok) {
+          const d = data.detail;
+          const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || res.statusText);
+          throw new Error(msg || "界域穿梭失敗");
+        }
+        closeModal("modal-realm-shuttle");
+        if (data.game_state) {
+          applyGameState(data.game_state, { animateLastAssistant: true });
+        }
+      } catch (e) {
+        errEl.textContent = String(e.message || e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    async function takeTurn(choice, opts) {
+      const clearCustomOnSuccess = opts && opts.clearCustom === true;
+      errEl.textContent = "";
+      setLoading(true);
+      try {
+        const res = await fetch(API_TURN, {
+          method: "POST",
+          headers: authHeaders(true),
+          body: JSON.stringify({ choice: String(choice) }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          showAuth();
+          throw new Error("登入已失效，請重新登入");
+        }
+        if (!res.ok) {
+          const d = data.detail;
+          const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || res.statusText);
+          throw new Error(msg || "請求失敗");
+        }
+        if (data.game_state) {
+          applyGameState(data.game_state, { animateLastAssistant: true });
+        } else {
+          const rawN = data.narrative != null ? String(data.narrative) : "";
+          const pr = tryParseAiJsonPayload(rawN);
+          if (pr.ok && pr.value) mergeParsedIntoCurrentGameState(pr.value);
+          else if (data.stats) stats = normalizeStatsFromServer({ ...stats, ...data.stats });
+          setBars();
+          if (rawN && storyScrollEl) {
+            detachStoryTypewriterSkip();
+            clearStoryTypewriterScrollSchedule();
+            storyScrollEl.classList.remove("story-scroll--tw-skip");
+            storyTypewriterGeneration++;
+            const bundle = parseAssistantDisplayBundle(rawN);
+            const { body, choices } = storyChoicesFromBundle(bundle);
+            storyScrollEl.innerHTML = "";
+            if (storyChoicesEl) {
+              storyChoicesEl.innerHTML = "";
+              storyChoicesEl.classList.remove("story-choices--await-reveal", "story-choices--fade-reveal");
+            }
+            const seg = document.createElement("div");
+            seg.className = "story-segment";
+            const bodyDiv = document.createElement("div");
+            bodyDiv.className = "story-segment-body";
+            const showBody = choices.length > 0 ? body : (body || bundle.narrative);
+            seg.appendChild(bodyDiv);
+            storyScrollEl.appendChild(seg);
+            if (String(showBody || "").trim()) {
+              runStoryTypewriter(bodyDiv, showBody, choices);
+            } else {
+              bodyDiv.classList.add("story-segment-body--rich");
+              if (storyChoicesEl) revealStoryChoicesFadeIn(choices);
+              scrollStoryToBottom();
+            }
+          }
+        }
+        if (clearCustomOnSuccess) customInput.value = "";
+      } catch (e) {
+        errEl.textContent = String(e.message || e);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    function submitCustom() {
+      const text = customInput.value.trim();
+      if (!text) return;
+      takeTurn(text, { clearCustom: true });
+    }
+
+    document.getElementById("btn-show-register").addEventListener("click", () => {
+      authErr.textContent = "";
+      loginPanel.classList.add("hidden");
+      registerPanel.classList.remove("hidden");
+    });
+    document.getElementById("btn-show-login").addEventListener("click", () => {
+      authErr.textContent = "";
+      registerPanel.classList.add("hidden");
+      loginPanel.classList.remove("hidden");
+    });
+
+    document.getElementById("btn-login").addEventListener("click", async () => {
+      authErr.textContent = "";
+      const username = document.getElementById("login-user").value.trim();
+      const password = document.getElementById("login-pass").value;
+      if (!username || !password) {
+        authErr.textContent = "請輸入帳號與密碼";
+        return;
+      }
+      try {
+        const res = await fetch(API_LOGIN, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const d = data.detail;
+          const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || "登入失敗");
+          authErr.textContent = msg;
+          return;
+        }
+        localStorage.setItem(TOKEN_KEY, data.token);
+        displayPlayerName.textContent = data.player_name || "—";
+        applyGameState(data.game_state);
+        showGame();
+      } catch (e) {
+        authErr.textContent = String(e.message || e);
+      }
+    });
+
+    document.getElementById("btn-register").addEventListener("click", async () => {
+      authErr.textContent = "";
+      regWaitHint.textContent = "";
+      const username = document.getElementById("reg-user").value.trim();
+      const password = document.getElementById("reg-pass").value;
+      const player_name = document.getElementById("reg-name").value.trim();
+      if (!username || !password || !player_name) {
+        authErr.textContent = "請填寫帳號、密碼與遊戲名號";
+        return;
+      }
+      const btnReg = document.getElementById("btn-register");
+      btnReg.disabled = true;
+      regWaitHint.textContent = "正在編織萬界開局，請稍候…";
+      try {
+        const res = await fetch(API_REGISTER, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password, player_name }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const d = data.detail;
+          const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || "註冊失敗");
+          authErr.textContent = msg;
+          regWaitHint.textContent = "";
+          return;
+        }
+        localStorage.setItem(TOKEN_KEY, data.token);
+        displayPlayerName.textContent = data.player_name || "—";
+        applyGameState(data.game_state);
+        regWaitHint.textContent = "";
+        showGame();
+      } catch (e) {
+        authErr.textContent = String(e.message || e);
+        regWaitHint.textContent = "";
+      } finally {
+        btnReg.disabled = false;
+      }
+    });
+
+    document.getElementById("btn-bingjie").addEventListener("click", async () => {
+      const ok = await showGameConfirm("兵解將使因果盡散，你確定要遁入輪迴嗎？");
+      if (!ok) return;
+      errEl.textContent = "";
+      setLoading(true);
+      try {
+        const res = await fetch(API_RESET_GAME, {
+          method: "POST",
+          headers: authHeaders(true),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          showAuth();
+          return;
+        }
+        if (!res.ok) {
+          const d = data.detail;
+          const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || "兵解失敗");
+          errEl.textContent = msg;
+          return;
+        }
+        window.location.reload();
+      } catch (e) {
+        errEl.textContent = String(e.message || e);
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    document.getElementById("btn-logout").addEventListener("click", async () => {
+      try {
+        await fetch(API_LOGOUT, { method: "POST", headers: authHeaders(false) });
+      } catch (_) { /* ignore */ }
+      localStorage.removeItem(TOKEN_KEY);
+      errEl.textContent = "";
+      showAuth();
+    });
+
+    buttons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const panel = btn.getAttribute("data-panel");
+        if (panel === "inventory") {
+          openInventoryModal();
+          return;
+        }
+        if (panel === "martial") {
+          openMartialModal();
+          return;
+        }
+        if (panel === "companions") {
+          openCompanionsModal();
+          return;
+        }
+        if (panel) openPanel(panel);
+      });
+    });
+
+    document.getElementById("btn-open-rename").addEventListener("click", () => {
+      renameInput.value = displayPlayerName.textContent.trim() === "—" ? "" : displayPlayerName.textContent.trim();
+      openModalOnly("modal-rename");
+      renameInput.focus();
+    });
+
+    renameInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        document.getElementById("btn-rename-save").click();
+      }
+    });
+
+    document.getElementById("btn-rename-save").addEventListener("click", async () => {
+      const name = renameInput.value.trim();
+      if (!name) return;
+      errEl.textContent = "";
+      try {
+        const res = await fetch(API_RENAME, {
+          method: "PATCH",
+          headers: authHeaders(true),
+          body: JSON.stringify({ player_name: name }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          localStorage.removeItem(TOKEN_KEY);
+          closeModal("modal-rename");
+          showAuth();
+          return;
+        }
+        if (!res.ok) {
+          const d = data.detail;
+          const msg = Array.isArray(d) ? d.map((x) => x.msg || x).join(" ") : (d || "更新失敗");
+          errEl.textContent = msg;
+          return;
+        }
+        displayPlayerName.textContent = data.player_name || name;
+        syncSidebarIdentityRow();
+        closeModal("modal-rename");
+      } catch (e) {
+        errEl.textContent = String(e.message || e);
+      }
+    });
+
+    sendCustomBtn.addEventListener("click", () => submitCustom());
+    customInput.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        submitCustom();
+      }
+    });
+
+    (async function boot() {
+      const t = getToken();
+      if (!t) {
+        showAuth();
+        return;
+      }
+      try {
+        const res = await fetch(API_ME, { headers: authHeaders(false) });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          localStorage.removeItem(TOKEN_KEY);
+          showAuth();
+          return;
+        }
+        displayPlayerName.textContent = data.player_name || "—";
+        applyGameState(data.game_state);
+        showGame();
+      } catch (_) {
+        localStorage.removeItem(TOKEN_KEY);
+        showAuth();
+      }
+    })();
+  </script>
+</body>
+</html>
