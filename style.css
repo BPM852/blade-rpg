@@ -209,7 +209,7 @@ header button.header-btn {
 /* —— 劇情捲動區 #story-scroll：僅中間敘事（字級為前一版 1/3 基礎的 2 倍）；頂欄／右側屬性／底欄按鈕／自訂行動維持原巨大化 —— */
 .story-scroll {
   font-size: clamp(0.746rem, 1.566vw, 1.146rem);
-  line-height: 1.6;
+  line-height: 1.65;
   max-width: min(1200px, 100%);
   margin-left: auto;
   margin-right: auto;
@@ -217,7 +217,7 @@ header button.header-btn {
   width: 100%;
   padding: 1.15rem clamp(0.85rem, 2.5vw, 1.5rem) 1.35rem;
   color: #ffffff;
-  background: transparent;
+  background: #000000;
   text-shadow: 0 0 1px rgba(255, 255, 255, 0.35), 0 0 12px rgba(255, 255, 255, 0.1);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -243,7 +243,7 @@ header button.header-btn {
 
 .story-segment-body,
 .story-segment-body--rich {
-  line-height: 1.6;
+  line-height: 1.65;
   color: #ffffff;
 }
 
@@ -290,6 +290,39 @@ header button.header-btn {
   margin: 1.6rem 0 1.7rem;
 }
 
+.story-choice-preview-inner {
+  line-height: 1.6;
+  color: #ffffff;
+}
+
+.story-choice-preview-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em 0.55em;
+  margin-bottom: 0.42em;
+  line-height: 1.55;
+}
+
+.story-choice-preview-line:last-child {
+  margin-bottom: 0;
+}
+
+.story-choice-preview-num {
+  color: #c9a85c;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow: 0 0 14px rgba(201, 168, 92, 0.4);
+  flex-shrink: 0;
+}
+
+.story-choice-preview-desc {
+  color: #ffffff;
+  font-weight: 600;
+  flex: 1 1 10em;
+  min-width: 0;
+}
+
 /* —— 抉擇：滿寬、巨大垂直間距 —— */
 #story-choices:not(:empty)::before {
   content: "【抉擇】";
@@ -330,15 +363,16 @@ button.story-choice-btn {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  text-align: left;
+  text-align: center;
   font-family: inherit;
   font-weight: 900;
   font-size: 2.16rem;
   line-height: 1.45;
   letter-spacing: 0.035em;
-  color: #ffffff;
-  background: #2d2d2d;
-  border: 1px solid #4a4a4a;
+  color: #e8c56e;
+  text-shadow: 0 0 14px rgba(201, 168, 92, 0.45), 0 0 28px rgba(201, 168, 92, 0.2);
+  background: #000000;
+  border: 1px solid #c9a85c;
   border-radius: 4px;
   cursor: pointer;
   min-height: 5.75em;
@@ -355,11 +389,11 @@ button.story-choice-btn {
 
 button.story-choice-btn:hover:not(:disabled) {
   transform: translateY(-2px) scale(1.01);
-  border-color: #8a8a8a;
-  box-shadow: 0 0 22px rgba(255, 255, 255, 0.18), 0 0 40px rgba(255, 255, 255, 0.06);
-  color: #ffffff;
-  background: #3d3d3d;
-  text-shadow: 0 0 12px rgba(255, 255, 255, 0.45), 0 0 24px rgba(255, 255, 255, 0.15);
+  border-color: #e4d4a8;
+  box-shadow: 0 0 22px rgba(201, 168, 92, 0.35), 0 0 40px rgba(201, 168, 92, 0.12);
+  color: #fff2c2;
+  background: #0a0a0a;
+  text-shadow: 0 0 16px rgba(255, 220, 160, 0.55), 0 0 32px rgba(201, 168, 92, 0.25);
 }
 
 button.story-choice-btn:active:not(:disabled) {
@@ -519,9 +553,10 @@ button.send-custom {
 }
 
 .game-modal-body {
-  line-height: 1.5;
+  line-height: 1.65;
   padding: 1.15rem 1.2rem 1rem;
   font-size: 1.06rem;
+  color: #ffffff;
 }
 
 .game-modal-choices {
@@ -532,17 +567,44 @@ button.send-custom {
 }
 
 button.game-modal-choice-btn {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35em 0.5em;
   width: 100%;
   box-sizing: border-box;
   min-height: 2.95em;
   padding: 0.88rem 0.9rem;
-  line-height: 1.5;
+  line-height: 1.55;
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.04em;
+  color: #c9a85c;
+  text-align: left;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+button.game-modal-choice-btn .game-modal-choice-num {
+  color: #c9a85c;
+  font-weight: 900;
+  text-shadow: 0 0 10px rgba(201, 168, 92, 0.35);
+  flex-shrink: 0;
+}
+
+button.game-modal-choice-btn .game-modal-choice-desc {
+  color: #ffffff;
+  font-weight: 700;
+  flex: 1 1 12em;
+  min-width: 0;
+}
+
+button.game-modal-choice-btn:hover:not(:disabled) .game-modal-choice-num {
+  color: #f0e0a8;
+}
+
+button.game-modal-choice-btn:hover:not(:disabled) .game-modal-choice-desc {
+  color: #ffffff;
 }
 
 .game-modal-x {
@@ -893,10 +955,20 @@ button.quest-roster-close-btn {
 .game-modal button.ma-card-expand:hover:not(:disabled),
 .game-modal button.cp-card-expand:hover:not(:disabled),
 .game-modal .cp-btn-talk:hover:not(:disabled),
-.game-modal .cp-btn-order:hover:not(:disabled),
-.game-modal button.game-modal-choice-btn:hover:not(:disabled) {
+.game-modal .cp-btn-order:hover:not(:disabled) {
   color: #ffffff !important;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.4), 0 0 20px rgba(255, 255, 255, 0.12);
+}
+
+/* 抉擇列：編號維持金色、描述維持白（不併入上列整鍵 !important 白字） */
+.game-modal button.game-modal-choice-btn:hover:not(:disabled) .game-modal-choice-num {
+  color: #f0e0a8 !important;
+  text-shadow: 0 0 12px rgba(201, 168, 92, 0.45);
+}
+
+.game-modal button.game-modal-choice-btn:hover:not(:disabled) .game-modal-choice-desc {
+  color: #ffffff !important;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
 }
 
 .game-modal .game-modal-x:hover {
@@ -973,5 +1045,19 @@ button.realm-shuttle-option:hover:not(:disabled) {
     font-size: 12px;
     letter-spacing: 0.09em;
     line-height: 1.25;
+  }
+
+  #game-root #story-scroll,
+  #game-root .story-scroll {
+    line-height: 1.72;
+    color: #ffffff;
+    background: #000000;
+  }
+
+  #game-root .story-scroll .story-segment-body,
+  #game-root .story-scroll .story-segment-body--rich,
+  #game-root .story-scroll .story-user-line {
+    line-height: 1.72;
+    color: #ffffff;
   }
 }

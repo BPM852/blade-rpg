@@ -247,28 +247,39 @@
       flex-direction: column;
       min-height: 0;
     }
-    /* 與 style.css 一致：劇情區為 1/3 基礎的 2 倍字級；line-height 1.6 */
+    /* 劇情區：純白字、純黑底，行距舒適（手機於下方 @media 再略放大 line-height） */
+    .story-panel-body {
+      background: #000000;
+    }
+    #story-scroll,
+    #story-scroll .story-segment-body,
+    #story-scroll .story-segment-body--rich,
+    #story-scroll .story-segment-body--typing {
+      color: #ffffff;
+    }
     .story-scroll {
       flex: 1 1 0;
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
       padding: 1rem 1.25rem 1.2rem;
-      line-height: 1.6;
+      line-height: 1.65;
       font-size: clamp(0.746rem, 1.566vw, 1.146rem);
-      text-shadow: 0 0 24px var(--gold-glow);
+      color: #ffffff;
+      background: #000000;
+      text-shadow: 0 0 1px rgba(255, 255, 255, 0.25), 0 0 18px rgba(255, 255, 255, 0.06);
       white-space: pre-wrap;
       word-break: break-word;
       scroll-behavior: smooth;
     }
     .story-scroll:empty::before {
       content: "黑幕未揭。選一刃，或自書一行命數。";
-      color: var(--gold-dim);
+      color: rgba(255, 255, 255, 0.45);
     }
     .story-scroll .story-user-line {
-      line-height: 1.6;
+      line-height: 1.65;
       font-size: 1em;
-      color: var(--gold-dim);
+      color: #ffffff;
       letter-spacing: 0.06em;
       margin-bottom: 1.45em;
       padding: 0.35rem 0 0.35rem 0.55rem;
@@ -297,12 +308,15 @@
     .story-segment-body--rich {
       white-space: normal;
     }
+    #story-scroll .story-narrative-heading {
+      color: #ffffff;
+    }
     .story-scroll.story-scroll--tw-skip {
       cursor: pointer;
     }
     .story-segment-body--typing {
-      min-height: 1.6em;
-      line-height: 1.6;
+      min-height: 1.65em;
+      line-height: 1.65;
     }
     @keyframes story-tw-tail-in {
       from { opacity: 0.28; }
@@ -381,11 +395,36 @@
     }
     .story-choice-preview-inner {
       font-size: 0.82rem;
-      line-height: 1.65;
-      letter-spacing: 0.05em;
-      color: var(--gold-dim);
-      white-space: pre-wrap;
+      line-height: 1.6;
+      letter-spacing: 0.04em;
+      color: #ffffff;
+      white-space: normal;
       word-break: break-word;
+    }
+    .story-choice-preview-line {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.35em 0.55em;
+      margin-bottom: 0.42em;
+      line-height: 1.55;
+    }
+    .story-choice-preview-line:last-child {
+      margin-bottom: 0;
+    }
+    .story-choice-preview-num {
+      color: #c9a85c;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-shadow: 0 0 14px rgba(201, 168, 92, 0.4);
+      flex-shrink: 0;
+    }
+    .story-choice-preview-desc {
+      color: #ffffff;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      flex: 1 1 10em;
+      min-width: 0;
     }
     .story-choices {
       flex-shrink: 0;
@@ -416,7 +455,7 @@
     button.story-choice-btn {
       text-align: center;
       background: #000000;
-      color: #c9a85c;
+      color: #e8c56e;
       border: 1px solid #c9a85c;
       border-radius: 6px;
       padding: 10px 8px;
@@ -626,16 +665,19 @@
       }
       #game-root .story-scroll {
         padding: 0.55rem 14px 0.45rem;
-        line-height: 1.6;
+        line-height: 1.72;
         font-size: clamp(0.95rem, 3.6vw, 1.12rem);
         scroll-padding-bottom: 2.35rem;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
+        color: #ffffff;
+        background: #000000;
       }
       #game-root .story-scroll .story-segment-body,
       #game-root .story-scroll .story-segment-body--rich,
       #game-root .story-scroll .story-user-line {
-        line-height: 1.6;
+        line-height: 1.72;
+        color: #ffffff;
       }
       #game-root .story-choices {
         padding: 3px 10px 4px;
@@ -1259,7 +1301,7 @@
       padding: 1rem 1.1rem 0.65rem;
       font-size: 0.9rem;
       line-height: 1.7;
-      color: var(--gold);
+      color: #ffffff;
       white-space: pre-wrap;
       word-break: break-word;
     }
@@ -1282,31 +1324,58 @@
     button.game-modal-choice-btn {
       text-align: left;
       background: #0c0a06;
-      color: var(--gold);
+      color: #c9a85c;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 0.55rem 0.65rem;
       font-family: inherit;
       font-size: 0.78rem;
       letter-spacing: 0.04em;
-      line-height: 1.45;
+      line-height: 1.5;
       cursor: pointer;
-      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0.35em 0.5em;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    button.game-modal-choice-btn .game-modal-choice-num {
+      color: #c9a85c;
+      font-weight: 800;
+      text-shadow: 0 0 10px rgba(201, 168, 92, 0.35);
+      flex-shrink: 0;
+    }
+    button.game-modal-choice-btn .game-modal-choice-desc {
+      color: #ffffff;
+      font-weight: 600;
+      flex: 1 1 12em;
+      min-width: 0;
     }
     button.game-modal-choice-btn:hover:not(:disabled) {
       border-color: var(--gold-dim);
       box-shadow: 0 0 14px var(--gold-glow);
-      color: #e4d4a8;
+    }
+    button.game-modal-choice-btn:hover:not(:disabled) .game-modal-choice-num {
+      color: #f0e0a8;
+    }
+    button.game-modal-choice-btn:hover:not(:disabled) .game-modal-choice-desc {
+      color: #ffffff;
     }
     button.game-modal-choice-btn:disabled {
       opacity: 0.45;
       cursor: wait;
     }
     button.game-modal-choice-btn--tagged {
-      color: #f8f6f2 !important;
       font-weight: 800;
       border-color: rgba(255, 240, 200, 0.45);
       box-shadow: 0 0 12px rgba(255, 220, 160, 0.22), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+    button.game-modal-choice-btn--tagged .game-modal-choice-num {
+      color: #ffe8c8 !important;
+      text-shadow: 0 0 12px rgba(255, 220, 160, 0.4);
+    }
+    button.game-modal-choice-btn--tagged .game-modal-choice-desc {
+      color: #ffffff !important;
     }
     button.game-modal-choice-btn--tagged:hover:not(:disabled) {
       border-color: rgba(255, 235, 190, 0.65);
@@ -4107,9 +4176,36 @@
       wrap.className = "story-choice-preview";
       const inner = document.createElement("div");
       inner.className = "story-choice-preview-inner";
-      inner.textContent = formatChoicePreviewText(choiceLines);
+      choiceLines.forEach((line, i) => {
+        const m = String(line).trim().match(/^\s*(\d+)[.．、]\s*(.+)$/);
+        const n = m ? m[1] : String(i + 1);
+        const t = m ? m[2].trim() : String(line).trim();
+        const row = document.createElement("div");
+        row.className = "story-choice-preview-line";
+        const numEl = document.createElement("span");
+        numEl.className = "story-choice-preview-num";
+        numEl.textContent = n + ".";
+        const descEl = document.createElement("span");
+        descEl.className = "story-choice-preview-desc";
+        descEl.textContent = t;
+        row.appendChild(numEl);
+        row.appendChild(descEl);
+        inner.appendChild(row);
+      });
       wrap.appendChild(inner);
       segEl.appendChild(wrap);
+    }
+
+    function choiceLineToModalButtonHtml(line) {
+      const m = String(line || "").trim().match(/^\s*(\d+)[.．、]\s*(.+)$/);
+      if (!m) return escapeHtml(String(line || ""));
+      return (
+        '<span class="game-modal-choice-num">' +
+        escapeHtml(m[1] + ".") +
+        '</span><span class="game-modal-choice-desc">' +
+        escapeHtml(m[2].trim()) +
+        "</span>"
+      );
     }
 
     function setCausalSettlementVisible(on) {
@@ -4357,7 +4453,7 @@
         const btn = document.createElement("button");
         btn.type = "button";
         decorateChoiceButton(btn, line, true);
-        btn.textContent = line;
+        btn.innerHTML = choiceLineToModalButtonHtml(line);
         btn.addEventListener("click", () => {
           closeModal(modalId);
           takeTurn(line);
