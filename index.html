@@ -4099,6 +4099,16 @@
     function setCausalSettlementVisible(on) {
       const el = document.getElementById("causal-settlement");
       if (!el) return;
+      if (on) {
+        const txt = el.querySelector(".causal-settlement-text");
+        if (txt) {
+          const pick =
+            window.BladeCausalSettlement && typeof window.BladeCausalSettlement.pickPhrase === "function"
+              ? window.BladeCausalSettlement.pickPhrase()
+              : "正在結算因果…";
+          txt.textContent = pick;
+        }
+      }
       el.classList.toggle("hidden", !on);
       el.setAttribute("aria-hidden", on ? "false" : "true");
     }
@@ -4853,7 +4863,8 @@
         modalId: "modal-attributes",
         authHeadersFn: () => authHeaders(true),
         getGameState: () => currentGameState,
-        applyGameState: (gs) => applyGameState(gs, { animateLastAssistant: false }),
+        applyGameState: (gs, opts) =>
+          applyGameState(gs, opts != null ? opts : { animateLastAssistant: false }),
         setError: (msg) => {
           errEl.textContent = msg || "";
         },

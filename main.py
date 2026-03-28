@@ -211,7 +211,7 @@ def random_opening_location() -> dict[str, str]:
 
 
 # 界域穿梭：鍵與前端 data-realm 一致；名稱皆虛構，避免現實地理。
-REALM_SHUTTLE_PRESETS: dict[str, dict[str, str]] = {
+REALM_SHUTTLE_PRESETS: dict[str, dict[str, Any]] = {
     "cyber": {
         "plane": "霓虹巢都位面",
         "world": "黑幫與巨企義體帶",
@@ -242,6 +242,11 @@ REALM_SHUTTLE_PRESETS: dict[str, dict[str, str]] = {
         "address": "甲板傳送篆陣外緣",
         "prompt_hint": (
             "敘事重心須轉向：審判庭式清算、星區戰火、亞空間漣漪、艦隊誓約與信仰狂熱。"
+        ),
+        # 僅注入 system，不寫入對話 user 欄，避免玩家 UI 看見指令原文。
+        "hidden_system_directive": (
+            "現在發生了時空震盪，玩家從原本的地點穿梭到了 40K 戰鎚世界，請根據目前的行囊與境界，"
+            "生成一個震撼的開場敘事，並埋下新的主線伏筆。"
         ),
     },
     "academy": {
@@ -3541,6 +3546,51 @@ async def me(auth: AuthUser) -> dict[str, Any]:
     }
 
 
+async def _fetch_god_mode_reality_whisper(
+    game_state: dict[str, Any], player_name: str
+) -> str | None:
+    """上帝模式儲存後：請模型以一句話描寫現實被外力重塑；失敗則 None。"""
+    core = game_state.get("core_save")
+    if not isinstance(core, dict):
+        core = {}
+    identity = core.get("identity")
+    if not isinstance(identity, dict):
+        identity = {}
+    display_name = str(identity.get("名號") or player_name or "旅人").strip() or "旅人"
+    realm = str(identity.get("境界") or "").strip()[:80]
+    loc = str(core.get("location") or "").strip()[:120]
+    inv = core.get("inventory")
+    inv_hint = ""
+    if isinstance(inv, list) and inv:
+        inv_hint = "、".join(str(x) for x in inv[:8] if x)[:220]
+    user_prompt = (
+        f"玩家存檔已遭「上帝模式」改寫。當前名號：{display_name}"
+        + (f"；境界：{realm}" if realm else "")
+        + (f"；所在：{loc}" if loc else "")
+        + (f"；行囊關鍵物：{inv_hint}" if inv_hint else "")
+        + "。\n\n"
+        "請只輸出**一句**繁體中文（不超過 90 字），風格黑暗史詩；"
+        f"須嵌入名號「{display_name}」，表示因果被強行扭轉、感受到強大外力重塑了現實或世界。"
+        "不要標題、不要用 JSON、不要編號；勿在句首加「旁白：」等前綴。"
+    )
+    msgs: list[dict[str, str]] = [
+        {
+            "role": "system",
+            "content": "你只輸出單一句繁體中文，遵守字數，不輸出其他任何內容。",
+        },
+        {"role": "user", "content": user_prompt},
+    ]
+    try:
+        raw = await _call_poe(msgs, temperature=0.78)
+    except HTTPException:
+        return None
+    line = str(raw or "").strip()
+    if not line:
+        return None
+    line = line.split("\n")[0].strip()
+    return line[:200] if line else None
+
+
 @app.post("/api/update_god_mode")
 async def update_god_mode(body: GodModeUpdateBody, auth: AuthUser) -> dict[str, Any]:
     """上帝模式：手動覆寫 core_save，寫回資料庫；下次回合會注入 build_final_prompt_for_turn。"""
@@ -3550,7 +3600,20 @@ async def update_god_mode(body: GodModeUpdateBody, auth: AuthUser) -> dict[str, 
     enforce_mundane_world_label(game_state)
     with get_db() as conn:
         save_user_game_state(conn, user_id, game_state)
-    return {"ok": True, "game_state": game_state}
+
+    whisper: str | None = await _fetch_god_mode_reality_whisper(game_state, _player_name)
+    if whisper:
+        whisper_payload = json.dumps({"narrative": whisper}, ensure_ascii=False)
+        game_state["messages"].append({"role": "assistant", "content": whisper_payload})
+        if len(game_state["messages"]) > 48:
+            game_state["messages"] = game_state["messages"][-48:]
+        with get_db() as conn:
+            save_user_game_state(conn, user_id, game_state)
+
+    out: dict[str, Any] = {"ok": True, "game_state": game_state}
+    if whisper:
+        out["god_reality_whisper"] = whisper
+    return out
 
 
 @app.patch("/api/me/name")
@@ -3875,8 +3938,17 @@ async def realm_shuttle(body: RealmShuttleBody, auth: AuthUser) -> dict[str, Any
     choice_line = f"【道號｜{player_name}】啟動界域穿梭，於新錨點清醒／落地。"
     user_content = f"{sys_evt}\n\n【玩家行動】{choice_line}"
 
+    base_system = system_prompt_with_session_context(game_state)
+    hidden = str(preset.get("hidden_system_directive") or "").strip()
+    if hidden:
+        base_system += (
+            "\n\n【系統隱藏指令｜編劇用】\n"
+            f"{hidden}\n"
+            "請將此指令融入本回合敘事與 JSON，勿向玩家逐字複誦本段標題。"
+        )
+
     msgs: list[dict[str, str]] = [
-        {"role": "system", "content": system_prompt_with_session_context(game_state)},
+        {"role": "system", "content": base_system},
     ]
     for m in game_state["messages"]:
         role = m.get("role", "")

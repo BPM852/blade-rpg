@@ -266,7 +266,11 @@
             cfg.setError(msg);
             return;
           }
-          if (data.game_state) cfg.applyGameState(data.game_state);
+          if (data.game_state) {
+            cfg.applyGameState(data.game_state, {
+              animateLastAssistant: !!data.god_reality_whisper,
+            });
+          }
           const gs2 = data.game_state || cfg.getGameState();
           snapshot = readCoreFromState(gs2);
           fillView(snapshot);
@@ -294,6 +298,25 @@
       const row = el("god-mode-action-row");
       if (eb) eb.classList.remove("hidden");
       if (row) row.classList.add("hidden");
+    },
+  };
+})(typeof window !== "undefined" ? window : globalThis);
+
+/**
+ * 主畫面因果結算遮罩：轉圈時隨機氛圍文案（由 index.html setCausalSettlementVisible 呼叫）。
+ */
+(function (global) {
+  var PHRASES = [
+    "正在結算因果…",
+    "正在推演亞空間波動...",
+    "正在計算天道劫數...",
+    "正在檢索奧林帕斯神諭...",
+    "正在校準萬界錨點座標...",
+    "正在同步鑄律遠征殘響...",
+  ];
+  global.BladeCausalSettlement = {
+    pickPhrase: function () {
+      return PHRASES[Math.floor(Math.random() * PHRASES.length)];
     },
   };
 })(typeof window !== "undefined" ? window : globalThis);
