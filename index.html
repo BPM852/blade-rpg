@@ -611,7 +611,7 @@
       }
       #game-root #story-scroll {
         flex: 1 1 0;
-        min-height: 0;
+        min-height: 60dvh;
       }
       #game-root > header {
         padding-left: 20px;
@@ -623,11 +623,12 @@
         padding-right: 20px;
       }
       #game-root .story-scroll {
-        padding: 0.65rem 16px 0.55rem;
+        padding: 0.55rem 14px 0.45rem;
         line-height: 1.6;
         font-size: clamp(0.95rem, 3.6vw, 1.12rem);
-        scroll-padding-bottom: 4.5rem;
+        scroll-padding-bottom: 3.25rem;
         -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
       }
       #game-root .story-scroll .story-segment-body,
       #game-root .story-scroll .story-segment-body--rich,
@@ -635,19 +636,19 @@
         line-height: 1.6;
       }
       #game-root .story-choices {
-        padding: 6px 12px 8px;
-        gap: 6px;
+        padding: 4px 10px 6px;
+        gap: 4px;
         flex-shrink: 0;
         grid-template-columns: 1fr 1fr;
         grid-template-rows: auto auto;
       }
       #game-root button.story-choice-btn {
-        padding: 10px 6px;
+        padding: 5px 4px;
         min-height: 0;
-        border-radius: 6px;
-        font-size: 0.88rem;
+        border-radius: 5px;
+        font-size: 0.8rem;
         font-weight: 700;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.06em;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -2320,8 +2321,6 @@
     const storyChoicesEl = document.getElementById("story-choices");
     let storyTypewriterGeneration = 0;
     let storyTypewriterSkipHandler = null;
-    let storyTypewriterScrollRaf = null;
-    let storyTwScrollAnchorEl = null;
     const errEl = document.getElementById("error");
     const buttons = document.querySelectorAll("button.action");
     const customInput = document.getElementById("custom-action");
@@ -3823,51 +3822,8 @@
       return s || String(raw).trim();
     }
 
-    function clearStoryTypewriterScrollSchedule() {
-      if (storyTypewriterScrollRaf != null) {
-        cancelAnimationFrame(storyTypewriterScrollRaf);
-        storyTypewriterScrollRaf = null;
-      }
-      storyTwScrollAnchorEl = null;
-    }
-
-    function scrollStoryDuringTypewriter(anchorEl) {
-      if (!storyScrollEl || !anchorEl) return;
-      storyTwScrollAnchorEl = anchorEl;
-      if (storyTypewriterScrollRaf != null) return;
-      storyTypewriterScrollRaf = requestAnimationFrame(() => {
-        storyTypewriterScrollRaf = null;
-        const el = storyTwScrollAnchorEl;
-        storyTwScrollAnchorEl = null;
-        if (!storyScrollEl || !el || !el.isConnected) return;
-        const sc = storyScrollEl;
-        const pad = Math.min(40, Math.max(20, sc.clientHeight * 0.08));
-        const ease = 0.94;
-        const maxSteps = 6;
-        for (let step = 0; step < maxSteps; step++) {
-          if (!el.isConnected) break;
-          const bodyRect = el.getBoundingClientRect();
-          const scRect = sc.getBoundingClientRect();
-          let delta = 0;
-          if (bodyRect.bottom > scRect.bottom - pad) {
-            delta += bodyRect.bottom - (scRect.bottom - pad);
-          }
-          if (bodyRect.top < scRect.top + pad) {
-            delta -= (scRect.top + pad) - bodyRect.top;
-          }
-          const maxScroll = Math.max(0, sc.scrollHeight - sc.clientHeight);
-          const instantTarget = Math.max(0, Math.min(sc.scrollTop + delta, maxScroll));
-          const before = sc.scrollTop;
-          sc.scrollTop = before + (instantTarget - before) * ease;
-          if (Math.abs(sc.scrollTop - instantTarget) < 2.5 && bodyRect.bottom <= scRect.bottom - pad * 0.9) break;
-          if (Math.abs(sc.scrollTop - before) < 0.5) break;
-        }
-      });
-    }
-
     function scrollStoryToBottom() {
       if (!storyScrollEl) return;
-      clearStoryTypewriterScrollSchedule();
       requestAnimationFrame(() => {
         const el = storyScrollEl;
         const top = el.scrollHeight;
@@ -4039,7 +3995,6 @@
       const linePauseMs = () => TW_LINE_PAUSE_MIN_MS + Math.floor(Math.random() * TW_LINE_PAUSE_SPAN_MS);
 
       function endTypingUi() {
-        clearStoryTypewriterScrollSchedule();
         storyScrollEl.classList.remove("story-scroll--tw-skip");
         bodyEl.classList.remove("story-segment-body--typing");
         detachStoryTypewriterSkip();
@@ -4051,12 +4006,12 @@
         endTypingUi();
         const seg = bodyEl.parentElement;
         if (seg && choiceLines && choiceLines.length) appendChoicePreviewBlock(seg, choiceLines);
-        scrollStoryToBottom();
+        scheduleStoryScrollLockToEnd();
         const genAtDone = myGen;
         setTimeout(() => {
           if (storyTypewriterGeneration !== genAtDone) return;
           revealStoryChoicesFadeIn(choiceLines);
-          scrollStoryToBottom();
+          scheduleStoryScrollLockToEnd();
         }, TW_CHOICES_AFTER_DONE_MS);
       }
 
@@ -4068,7 +4023,7 @@
         const seg = bodyEl.parentElement;
         if (seg && choiceLines && choiceLines.length) appendChoicePreviewBlock(seg, choiceLines);
         revealStoryChoicesFadeIn(choiceLines);
-        scrollStoryToBottom();
+        scheduleStoryScrollLockToEnd();
       }
 
       if (!fullText || !String(fullText).trim() || chunks.length === 0) {
@@ -4077,7 +4032,7 @@
         const seg0 = bodyEl.parentElement;
         if (seg0 && choiceLines && choiceLines.length) appendChoicePreviewBlock(seg0, choiceLines);
         revealStoryChoicesFadeIn(choiceLines);
-        scrollStoryToBottom();
+        scheduleStoryScrollLockToEnd();
         return;
       }
 
@@ -4118,7 +4073,10 @@
           acc += chars[gi];
           gi++;
           bodyEl.innerHTML = typewriterHtmlWithTail(acc);
-          scrollStoryDuringTypewriter(bodyEl);
+          requestAnimationFrame(() => {
+            if (storyTypewriterGeneration !== myGen || !storyScrollEl) return;
+            storyScrollEl.scrollTop = storyScrollEl.scrollHeight;
+          });
           setTimeout(tick, charDelayMs());
         }
         tick();
@@ -4131,7 +4089,6 @@
       const animateLastAssistant = !!opts.animateLastAssistant;
       if (!storyScrollEl || !storyChoicesEl) return;
       detachStoryTypewriterSkip();
-      clearStoryTypewriterScrollSchedule();
       storyScrollEl.classList.remove("story-scroll--tw-skip");
       storyTypewriterGeneration++;
       storyScrollEl.innerHTML = "";
@@ -4139,7 +4096,7 @@
       storyChoicesEl.classList.remove("story-choices--await-reveal", "story-choices--fade-reveal");
       const filtered = filterMessagesForStory(gs.messages || []);
       if (filtered.length === 0) {
-        scrollStoryToBottom();
+        scheduleStoryScrollLockToEnd();
         return;
       }
       let lastAi = -1;
@@ -4183,7 +4140,7 @@
             storyScrollEl.appendChild(seg);
             appendChoicePreviewBlock(seg, choices);
             revealStoryChoicesFadeIn(choices);
-            scrollStoryToBottom();
+            scheduleStoryScrollLockToEnd();
           }
         } else {
           setNarrativeHtml(bodyDiv, displayBody);
@@ -4197,7 +4154,7 @@
         const { choices } = storyChoicesFromBundle(bundle);
         revealStoryChoicesFadeIn(choices);
       }
-      scrollStoryToBottom();
+      scheduleStoryScrollLockToEnd();
     }
 
     function fillModalWithChoices(modal, fullText) {
@@ -4486,7 +4443,6 @@
           setBars();
           if (rawN && storyScrollEl) {
             detachStoryTypewriterSkip();
-            clearStoryTypewriterScrollSchedule();
             storyScrollEl.classList.remove("story-scroll--tw-skip");
             storyTypewriterGeneration++;
             const bundle = parseAssistantDisplayBundle(rawN);
@@ -4509,7 +4465,7 @@
               bodyDiv.classList.add("story-segment-body--rich");
               appendChoicePreviewBlock(seg, choices);
               if (storyChoicesEl) revealStoryChoicesFadeIn(choices);
-              scrollStoryToBottom();
+              scheduleStoryScrollLockToEnd();
             }
           }
         }
