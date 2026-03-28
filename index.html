@@ -323,15 +323,84 @@
     .game-root--tw-skip {
       cursor: pointer;
     }
+    .causal-settlement {
+      position: fixed;
+      inset: 0;
+      z-index: 850;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.58);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+    }
+    .causal-settlement.hidden {
+      display: none !important;
+    }
+    .causal-settlement-card {
+      text-align: center;
+      padding: 1.45rem 1.85rem 1.55rem;
+      border: 1px solid #c9a85c;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.94);
+      box-shadow:
+        0 0 32px rgba(201, 168, 92, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      max-width: min(90vw, 320px);
+    }
+    .causal-settlement-ring {
+      width: 46px;
+      height: 46px;
+      margin: 0 auto 1rem;
+      border: 2px solid rgba(201, 168, 92, 0.3);
+      border-top-color: #c9a85c;
+      border-radius: 50%;
+      animation: causal-spin 0.9s linear infinite;
+    }
+    @keyframes causal-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    .causal-settlement-text {
+      margin: 0;
+      font-size: 0.76rem;
+      letter-spacing: 0.38em;
+      color: var(--gold-dim);
+    }
+    .story-choice-preview {
+      margin-top: 0.85rem;
+      padding: 0.75rem 0.85rem 0.65rem;
+      border: 1px solid rgba(201, 168, 92, 0.28);
+      border-radius: 8px;
+      background: rgba(8, 7, 5, 0.55);
+      box-shadow: inset 0 0 20px rgba(201, 168, 92, 0.04);
+    }
+    .story-choice-preview-inner {
+      font-size: 0.82rem;
+      line-height: 1.65;
+      letter-spacing: 0.05em;
+      color: var(--gold-dim);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
     .story-choices {
       flex-shrink: 0;
-      margin-top: 0.25rem;
-      padding: 0.85rem 1.25rem 1.05rem;
-      border-top: 1px solid rgba(201, 168, 92, 0.38);
+      width: 100%;
+      padding: 0.65rem 1rem 0.75rem;
+      border-top: 1px solid rgba(201, 168, 92, 0.35);
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
-      display: flex;
-      flex-direction: column;
-      gap: 0.45rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+      align-items: stretch;
+      background: #000000;
+    }
+    @media (min-width: 520px) {
+      .story-choices {
+        grid-template-columns: repeat(4, 1fr);
+      }
     }
     .story-choices:empty {
       display: none;
@@ -339,27 +408,41 @@
       border-top: none;
     }
     button.story-choice-btn {
-      text-align: left;
-      background: #0c0a06;
-      color: var(--gold);
-      border: 1px solid var(--border);
+      text-align: center;
+      background: #000000;
+      color: #c9a85c;
+      border: 1px solid #c9a85c;
       border-radius: 8px;
-      padding: 0.55rem 0.65rem;
+      padding: 0.65rem 0.5rem;
       font-family: inherit;
-      font-size: 0.78rem;
-      letter-spacing: 0.04em;
-      line-height: 1.45;
+      font-size: 1.05rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      line-height: 1.2;
+      min-height: 52px;
       cursor: pointer;
-      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+      transition: border-color 0.2s, box-shadow 0.2s, color 0.2s, background 0.2s;
+      box-shadow:
+        0 0 12px rgba(201, 168, 92, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.04);
     }
-    button.story-choice-btn:hover:not(:disabled) {
-      border-color: var(--gold-dim);
-      box-shadow: 0 0 14px var(--gold-glow);
-      color: #e4d4a8;
+    button.story-choice-btn:hover:not(:disabled):not(.story-action-slot--ghost) {
+      color: #f0e6c8;
+      border-color: #e4d4a8;
+      box-shadow:
+        0 0 20px rgba(201, 168, 92, 0.35),
+        0 0 36px rgba(201, 168, 92, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.07);
     }
     button.story-choice-btn:disabled {
-      opacity: 0.45;
-      cursor: wait;
+      cursor: not-allowed;
+    }
+    button.story-choice-btn.story-action-slot--ghost {
+      opacity: 0.2;
+      pointer-events: none;
+      border-style: dashed;
+      box-shadow: none;
+      color: var(--gold-dim);
     }
     button.story-choice-btn--tagged {
       color: #f8f6f2 !important;
@@ -476,11 +559,9 @@
     }
     @media (max-width: 800px) {
       #game-root .story-choices {
-        gap: 0.8rem;
-      }
-      #game-root button.story-choice-btn {
-        width: 100%;
-        max-width: 100%;
+        gap: 0.55rem;
+        padding-left: 16px;
+        padding-right: 16px;
       }
     }
     @media (max-width: 640px) {
@@ -538,20 +619,22 @@
         line-height: 1.6;
       }
       #game-root .story-choices {
-        padding: 0.95rem 20px 1.15rem;
-        gap: 0.88rem;
+        padding: 0.75rem 20px 0.85rem;
+        gap: 0.5rem;
         flex-shrink: 0;
       }
       #game-root button.story-choice-btn {
-        width: 100%;
-        max-width: 100%;
         min-height: 54px;
-        padding: 0.85rem 1rem;
-        line-height: 1.5;
+        padding: 0.75rem 0.45rem;
         border-radius: 10px;
-        font-size: 0.88rem;
+        font-size: 1.08rem;
         display: flex;
         align-items: center;
+        justify-content: center;
+      }
+      #game-root .story-choice-preview {
+        margin-left: 0;
+        margin-right: 0;
       }
       #game-root .err {
         padding-left: 20px;
@@ -1977,9 +2060,9 @@
         <div class="panel-head">劇情</div>
         <div class="story-panel-body">
           <div id="story-scroll" class="story-scroll" aria-live="polite"></div>
-          <div id="story-choices" class="story-choices" aria-label="當前抉擇"></div>
         </div>
       </section>
+      <div id="story-choices" class="story-choices" aria-label="當前抉擇"></div>
     </main>
     <div class="err" id="error"></div>
     <div class="custom-action-row">
@@ -2004,6 +2087,12 @@
         <button type="button" class="action" data-panel="attributes">屬性</button>
       </div>
     </footer>
+    <div id="causal-settlement" class="causal-settlement hidden" aria-hidden="true">
+      <div class="causal-settlement-card" role="status">
+        <div class="causal-settlement-ring" aria-hidden="true"></div>
+        <p class="causal-settlement-text">正在結算因果…</p>
+      </div>
+    </div>
   </div>
 
   <div id="modal-inventory" class="game-modal hidden" aria-hidden="true">
@@ -3830,19 +3919,71 @@
       if (gameRoot) gameRoot.classList.remove("game-root--tw-skip");
     }
 
+    const STORY_CHOICE_DIGIT_MAX = 4;
+
+    function choiceLinePlainText(line) {
+      const m = String(line || "").trim().match(/^\s*(\d+)[.．、]\s*(.+)$/);
+      return m ? m[2].trim() : String(line || "").trim();
+    }
+
+    function formatChoicePreviewText(choiceLines) {
+      if (!choiceLines || !choiceLines.length) return "";
+      return choiceLines
+        .map((line, i) => {
+          const m = String(line).trim().match(/^\s*(\d+)[.．、]\s*(.+)$/);
+          const n = m ? m[1] : String(i + 1);
+          const t = m ? m[2].trim() : String(line).trim();
+          return n + ". " + t;
+        })
+        .join("\n");
+    }
+
+    function appendChoicePreviewBlock(segEl, choiceLines) {
+      if (!segEl || !choiceLines || !choiceLines.length) return;
+      Array.from(segEl.children).forEach((c) => {
+        if (c.classList && c.classList.contains("story-choice-preview")) c.remove();
+      });
+      const wrap = document.createElement("div");
+      wrap.className = "story-choice-preview";
+      const inner = document.createElement("div");
+      inner.className = "story-choice-preview-inner";
+      inner.textContent = formatChoicePreviewText(choiceLines);
+      wrap.appendChild(inner);
+      segEl.appendChild(wrap);
+    }
+
+    function setCausalSettlementVisible(on) {
+      const el = document.getElementById("causal-settlement");
+      if (!el) return;
+      el.classList.toggle("hidden", !on);
+      el.setAttribute("aria-hidden", on ? "false" : "true");
+    }
+
     function revealStoryChoicesFadeIn(choiceLines) {
       if (!storyChoicesEl) return;
       storyChoicesEl.classList.remove("story-choices--await-reveal", "story-choices--fade-reveal");
       storyChoicesEl.innerHTML = "";
       if (!choiceLines || !choiceLines.length) return;
-      choiceLines.forEach((line) => {
+      const slice = choiceLines.slice(0, STORY_CHOICE_DIGIT_MAX);
+      for (let i = 0; i < STORY_CHOICE_DIGIT_MAX; i++) {
         const btn = document.createElement("button");
         btn.type = "button";
-        decorateChoiceButton(btn, line, false);
-        btn.textContent = line;
-        btn.addEventListener("click", () => takeTurn(line));
+        const num = String(i + 1);
+        btn.textContent = num;
+        if (i < slice.length) {
+          const line = slice[i];
+          decorateChoiceButton(btn, line, false);
+          const hint = choiceLinePlainText(line);
+          btn.setAttribute("aria-label", "選項 " + num + "：" + hint);
+          btn.title = hint;
+          btn.addEventListener("click", () => takeTurn(num));
+        } else {
+          btn.className = "story-choice-btn story-action-slot--ghost";
+          btn.disabled = true;
+          btn.setAttribute("aria-hidden", "true");
+        }
         storyChoicesEl.appendChild(btn);
-      });
+      }
       storyChoicesEl.classList.add("story-choices--await-reveal");
       void storyChoicesEl.offsetHeight;
       requestAnimationFrame(() => {
@@ -3874,6 +4015,8 @@
         if (storyTypewriterGeneration !== myGen) return;
         bodyEl.innerHTML = narrativeToSafeHtml(fullText);
         endTypingUi();
+        const seg = bodyEl.parentElement;
+        if (seg && choiceLines && choiceLines.length) appendChoicePreviewBlock(seg, choiceLines);
         scrollStoryToBottom();
         const genAtDone = myGen;
         setTimeout(() => {
@@ -3888,6 +4031,8 @@
         storyTypewriterGeneration++;
         bodyEl.innerHTML = narrativeToSafeHtml(fullText);
         endTypingUi();
+        const seg = bodyEl.parentElement;
+        if (seg && choiceLines && choiceLines.length) appendChoicePreviewBlock(seg, choiceLines);
         revealStoryChoicesFadeIn(choiceLines);
         scrollStoryToBottom();
       }
@@ -3895,6 +4040,8 @@
       if (!fullText || !String(fullText).trim() || chunks.length === 0) {
         bodyEl.innerHTML = fullText ? narrativeToSafeHtml(String(fullText)) : "";
         endTypingUi();
+        const seg0 = bodyEl.parentElement;
+        if (seg0 && choiceLines && choiceLines.length) appendChoicePreviewBlock(seg0, choiceLines);
         revealStoryChoicesFadeIn(choiceLines);
         scrollStoryToBottom();
         return;
@@ -3988,12 +4135,7 @@
         seg.className = "story-segment";
         const bodyDiv = document.createElement("div");
         bodyDiv.className = "story-segment-body";
-        let displayBody;
-        if (i === lastAi && choices.length > 0) {
-          displayBody = body;
-        } else {
-          displayBody = choices.length > 0 ? bundle.narrative : (body || bundle.narrative);
-        }
+        const displayBody = choices.length > 0 ? body : (body || bundle.narrative);
         const animateThis = animateLastAssistant && i === lastAi;
         if (animateThis) {
           if (String(displayBody || "").trim()) {
@@ -4005,31 +4147,21 @@
             bodyDiv.innerHTML = "";
             seg.appendChild(bodyDiv);
             storyScrollEl.appendChild(seg);
+            appendChoicePreviewBlock(seg, choices);
             revealStoryChoicesFadeIn(choices);
             scrollStoryToBottom();
           }
         } else {
-          if (i === lastAi && choices.length > 0) {
-            setNarrativeHtml(bodyDiv, body);
-          } else {
-            const showText = choices.length > 0 ? bundle.narrative : (body || bundle.narrative);
-            setNarrativeHtml(bodyDiv, showText);
-          }
+          setNarrativeHtml(bodyDiv, displayBody);
           seg.appendChild(bodyDiv);
           storyScrollEl.appendChild(seg);
+          if (choices.length) appendChoicePreviewBlock(seg, choices);
         }
       }
       if (lastAi >= 0 && !animateLastAssistant) {
         const bundle = parseAssistantDisplayBundle(filtered[lastAi].content || "");
         const { choices } = storyChoicesFromBundle(bundle);
-        choices.forEach((line) => {
-          const btn = document.createElement("button");
-          btn.type = "button";
-          decorateChoiceButton(btn, line, false);
-          btn.textContent = line;
-          btn.addEventListener("click", () => takeTurn(line));
-          storyChoicesEl.appendChild(btn);
-        });
+        revealStoryChoicesFadeIn(choices);
       }
       scrollStoryToBottom();
     }
@@ -4292,6 +4424,7 @@
       const clearCustomOnSuccess = opts && opts.clearCustom === true;
       errEl.textContent = "";
       setLoading(true);
+      setCausalSettlementVisible(true);
       try {
         const res = await fetch(API_TURN, {
           method: "POST",
@@ -4340,6 +4473,7 @@
               runStoryTypewriter(bodyDiv, showBody, choices);
             } else {
               bodyDiv.classList.add("story-segment-body--rich");
+              appendChoicePreviewBlock(seg, choices);
               if (storyChoicesEl) revealStoryChoicesFadeIn(choices);
               scrollStoryToBottom();
             }
@@ -4349,6 +4483,7 @@
       } catch (e) {
         errEl.textContent = String(e.message || e);
       } finally {
+        setCausalSettlementVisible(false);
         setLoading(false);
       }
     }
