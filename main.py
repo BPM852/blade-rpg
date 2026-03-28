@@ -2755,6 +2755,14 @@ async def index() -> FileResponse:
     )
 
 
+@app.get("/manifest.json")
+async def manifest() -> FileResponse:
+    return FileResponse(
+        os.path.join(BASE_DIR, "manifest.json"),
+        media_type="application/manifest+json",
+    )
+
+
 @app.post("/api/register")
 async def register(body: RegisterBody) -> dict[str, Any]:
     u = body.username.strip()

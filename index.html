@@ -2,8 +2,17 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="刃界錄" />
   <title>刃界錄 — Blade 風文字 RPG</title>
+  <link rel="manifest" href="/manifest.json" />
+  <!-- 暫用 DiceBear bottts（深色底）作賽博機械感占位圖示，日後可改成本地 assets/icon.png -->
+  <link rel="icon" type="image/png" sizes="192x192" href="https://api.dicebear.com/7.x/bottts/png?seed=bladerpg&amp;backgroundColor=1a150c&amp;size=192" />
+  <link rel="apple-touch-icon" href="https://api.dicebear.com/7.x/bottts/png?seed=bladerpg&amp;backgroundColor=1a150c&amp;size=180" />
   <style>
     :root {
       --bg: #000000;
@@ -417,15 +426,24 @@
       font-size: 0.8rem;
     }
     .bar {
-      height: 4px;
+      height: 6px;
       background: #1a150c;
       border: 1px solid var(--border);
+      border-radius: 2px;
+      box-shadow:
+        0 0 14px rgba(201, 168, 92, 0.22),
+        0 0 28px rgba(201, 168, 92, 0.08),
+        inset 0 0 10px rgba(0, 0, 0, 0.65);
     }
     .bar > i {
       display: block;
       height: 100%;
+      border-radius: 1px;
       background: linear-gradient(90deg, var(--gold-dim), var(--gold));
-      box-shadow: 0 0 12px var(--gold-glow);
+      box-shadow:
+        0 0 12px var(--gold-glow),
+        0 0 22px rgba(201, 168, 92, 0.55),
+        0 0 36px rgba(201, 168, 92, 0.28);
       width: 0%;
       transition: width 0.45s ease;
     }
@@ -436,9 +454,145 @@
       grid-template-columns: repeat(4, 1fr);
       gap: 0.5rem;
     }
+    footer.actions .actions-row--dock,
+    footer.actions .actions-row--secondary {
+      display: contents;
+    }
     @media (max-width: 640px) {
       footer.actions { grid-template-columns: repeat(2, 1fr); }
     }
+
+    @media (max-width: 600px) {
+      #game-root {
+        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+      }
+      #game-root > header {
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+      #game-root > main {
+        padding-left: 0;
+        padding-right: 0;
+      }
+      #game-root .panel-head {
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+      #game-root .story-scroll {
+        padding-left: 15px;
+        padding-right: 15px;
+        line-height: 1.6;
+      }
+      #game-root .story-scroll .story-segment-body,
+      #game-root .story-scroll .story-segment-body--rich,
+      #game-root .story-scroll .story-user-line {
+        line-height: 1.6;
+      }
+      #game-root .story-choices {
+        padding-left: 15px;
+        padding-right: 15px;
+        gap: 0.55rem;
+      }
+      #game-root button.story-choice-btn {
+        min-height: 48px;
+        padding: 0.75rem 0.85rem;
+        line-height: 1.5;
+        display: flex;
+        align-items: center;
+      }
+      aside.stats .stat-list {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.65rem 0.6rem;
+        padding: 1rem 15px;
+      }
+      aside.stats .stat-row.stat-row--sidebar-meta {
+        margin-bottom: 0;
+        grid-column: span 1;
+      }
+      aside.stats .stat-row.stat-row--sidebar-meta .stat-loc-label {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.28rem;
+        letter-spacing: 0.08em;
+      }
+      aside.stats .stat-row.stat-row--sidebar-meta .stat-rank-line {
+        max-width: 100%;
+        justify-content: flex-start;
+      }
+      aside.stats .stat-row:not(.stat-row--sidebar-meta) {
+        grid-column: 1 / -1;
+        margin-bottom: 0.85rem;
+      }
+      aside.stats .btn-realm-shuttle {
+        grid-column: 1 / -1;
+      }
+      #game-root .err {
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+      #game-root .custom-action-row {
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+      footer.actions {
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+        gap: 0;
+        border-top: none;
+        background: transparent;
+      }
+      footer.actions .actions-row--dock,
+      footer.actions .actions-row--secondary {
+        display: grid;
+      }
+      footer.actions .actions-row--secondary {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        padding: 0.85rem 15px 0.65rem;
+        border-top: 1px solid var(--border);
+        background: #050505;
+      }
+      footer.actions .actions-row--dock {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 40;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        padding: 10px 15px;
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+        background: linear-gradient(180deg, rgba(10, 8, 5, 0.97) 0%, #030303 100%);
+        border-top: 1px solid rgba(201, 168, 92, 0.35);
+        box-shadow:
+          0 -6px 28px rgba(201, 168, 92, 0.1),
+          0 -16px 48px rgba(0, 0, 0, 0.85);
+      }
+      footer.actions .actions-row--dock .action {
+        min-height: 48px;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.9rem;
+        letter-spacing: 0.12em;
+      }
+      footer.actions .actions-row--secondary .action {
+        min-height: 44px;
+      }
+      #game-root .bar {
+        box-shadow:
+          0 0 18px rgba(201, 168, 92, 0.3),
+          0 0 36px rgba(201, 168, 92, 0.12),
+          inset 0 0 12px rgba(0, 0, 0, 0.7);
+      }
+      #game-root .bar > i {
+        box-shadow:
+          0 0 14px var(--gold-glow),
+          0 0 26px rgba(201, 168, 92, 0.65),
+          0 0 42px rgba(255, 220, 160, 0.22);
+      }
+    }
+
     button.action {
       background: #0c0a06;
       color: var(--gold);
@@ -1696,10 +1850,14 @@
       <button type="button" class="send-custom" id="btn-send-custom">發送</button>
     </div>
     <footer class="actions">
-      <button type="button" class="action" data-panel="inventory">行囊</button>
-      <button type="button" class="action" data-panel="martial">武學</button>
-      <button type="button" class="action" data-panel="companions">同伴</button>
-      <button type="button" class="action" data-panel="quests">任務</button>
+      <div class="actions-row actions-row--dock" aria-label="主要操作">
+        <button type="button" class="action" data-panel="inventory">行囊</button>
+        <button type="button" class="action" data-panel="martial">武學</button>
+      </div>
+      <div class="actions-row actions-row--secondary" aria-label="其他面板">
+        <button type="button" class="action" data-panel="companions">同伴</button>
+        <button type="button" class="action" data-panel="quests">任務</button>
+      </div>
     </footer>
   </div>
 

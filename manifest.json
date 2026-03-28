@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "刃界錄 — Blade 風文字 RPG",
+  "short_name": "刃界錄",
+  "description": "命數如刃，字句如血。賽博修仙風文字 RPG。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait-primary",
+  "lang": "zh-Hant",
+  "icons": [
+    {
+      "src": "https://api.dicebear.com/7.x/bottts/png?seed=bladerpg&backgroundColor=1a150c&size=192",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://api.dicebear.com/7.x/bottts/png?seed=bladerpg&backgroundColor=1a150c&size=512",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
