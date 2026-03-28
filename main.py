@@ -2737,6 +2737,50 @@ def _apply_core_save_patch(
             cs["summary"] = add[:8000]
 
 
+def _apply_god_mode_core_save(game_state: dict[str, Any], inc: dict[str, Any]) -> None:
+    """上帝模式：以傳入物件覆寫／取代 core_save 各欄（與 AI [UPDATE_STATE] 的合併策略不同）。"""
+    if not isinstance(inc, dict) or not inc:
+        return
+    _ensure_core_save(game_state)
+    cs = game_state["core_save"]
+    id_inc = inc.get("identity")
+    if id_inc is None and isinstance(inc.get("character"), dict):
+        id_inc = inc["character"]
+    if isinstance(id_inc, dict):
+        idt = cs["identity"]
+        for kk, vv in id_inc.items():
+            if isinstance(vv, str):
+                s = vv.strip()
+                if s:
+                    idt[str(kk)[:48]] = s[:200]
+        jing = idt.get("境界")
+        if isinstance(jing, str) and jing.strip():
+            game_state["rank"] = jing.strip()[:48]
+    if "inventory" in inc and isinstance(inc["inventory"], list):
+        cs["inventory"] = [
+            str(x).strip()[:200] for x in inc["inventory"] if str(x).strip()
+        ]
+    if "relationships" in inc and isinstance(inc["relationships"], dict):
+        cs["relationships"] = {
+            str(k)[:120]: str(v)[:500]
+            for k, v in inc["relationships"].items()
+            if str(k).strip()
+        }
+    if "location" in inc and isinstance(inc["location"], str):
+        loc = inc["location"].strip()
+        if loc:
+            cs["location"] = loc[:500]
+            _apply_location_string_to_current(game_state, cs["location"])
+    if "milestones" in inc and isinstance(inc["milestones"], list):
+        cs["milestones"] = [
+            str(x).strip()[:500]
+            for x in inc["milestones"]
+            if str(x).strip()
+        ][-64:]
+    if "summary" in inc and isinstance(inc["summary"], str):
+        cs["summary"] = inc["summary"][:8000]
+
+
 async def _maybe_compress_message_history(game_state: dict[str, Any]) -> None:
     hist = game_state.get("messages")
     if not isinstance(hist, list) or len(hist) <= MEMORY_COMPRESS_THRESHOLD:
@@ -2885,6 +2929,10 @@ class SkillActionBody(BaseModel):
 
 class RenameBody(BaseModel):
     player_name: str = Field(..., min_length=1, max_length=32)
+
+
+class GodModeUpdateBody(BaseModel):
+    core_save: dict[str, Any] = Field(default_factory=dict)
 
 
 class RealmShuttleBody(BaseModel):
@@ -3389,6 +3437,18 @@ async def me(auth: AuthUser) -> dict[str, Any]:
         "player_name": player_name,
         "game_state": game_state,
     }
+
+
+@app.post("/api/update_god_mode")
+async def update_god_mode(body: GodModeUpdateBody, auth: AuthUser) -> dict[str, Any]:
+    """上帝模式：手動覆寫 core_save，寫回資料庫；下次回合會注入 build_final_prompt_for_turn。"""
+    user_id, _username, _player_name, game_state = auth
+    _ensure_game_state_shape(game_state)
+    _apply_god_mode_core_save(game_state, body.core_save)
+    enforce_mundane_world_label(game_state)
+    with get_db() as conn:
+        save_user_game_state(conn, user_id, game_state)
+    return {"ok": True, "game_state": game_state}
 
 
 @app.patch("/api/me/name")

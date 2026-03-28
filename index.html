@@ -1081,6 +1081,102 @@
     .attrs-block--realm .btn-realm-shuttle {
       margin-top: 0.5rem;
     }
+    .attrs-block--god .god-core-hint {
+      margin: 0 0 0.65rem;
+      font-size: 0.62rem;
+      line-height: 1.45;
+      color: rgba(201, 168, 92, 0.55);
+      letter-spacing: 0.06em;
+    }
+    .god-field {
+      margin-bottom: 0.6rem;
+    }
+    .god-field label.god-field-label {
+      display: block;
+      margin-bottom: 0.22rem;
+      font-size: 0.58rem;
+      letter-spacing: 0.2em;
+      color: var(--gold-dim);
+    }
+    .god-view {
+      display: block;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      color: #e8dcc8;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .god-input,
+    .god-textarea {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.4rem 0.55rem;
+      border: 1px solid rgba(201, 168, 92, 0.45);
+      border-radius: 6px;
+      background: rgba(0, 0, 0, 0.65);
+      color: #f0e6c8;
+      font-family: inherit;
+      font-size: 0.8rem;
+    }
+    .god-textarea {
+      min-height: 3.5rem;
+      resize: vertical;
+      line-height: 1.4;
+    }
+    #modal-attributes.god-editing .god-view-wrap {
+      display: none;
+    }
+    #modal-attributes:not(.god-editing) .god-edit-wrap {
+      display: none;
+    }
+    .attrs-god-footer {
+      flex-shrink: 0;
+      padding: 0.55rem 1rem 0.75rem;
+      border-top: 1px solid rgba(201, 168, 92, 0.35);
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+    }
+    .god-mode-action-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .god-footer-btn {
+      flex: 1;
+      min-width: 6rem;
+      padding: 0.5rem 0.65rem;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      border: 1px solid #c9a85c;
+      background: #000000;
+      color: #c9a85c;
+    }
+    .god-footer-btn:hover {
+      color: #f0e6c8;
+      border-color: #e4d4a8;
+    }
+    .god-footer-btn.god-save {
+      border-color: #ff4444;
+      color: #ff6b6b;
+    }
+    .god-footer-btn.god-save:hover {
+      color: #ffb3b3;
+      border-color: #ff6666;
+    }
+    .god-footer-btn.god-cancel {
+      border-color: rgba(201, 168, 92, 0.4);
+      color: var(--gold-dim);
+    }
+    #modal-attributes.god-mode-active .attrs-modal-sheet {
+      border-color: #ff4444;
+      box-shadow:
+        0 0 0 1px rgba(255, 68, 68, 0.35),
+        0 0 32px rgba(255, 68, 68, 0.18);
+    }
     button.attrs-modal-x {
       position: absolute;
       top: 0.55rem;
@@ -2195,6 +2291,57 @@
             </div>
             <button type="button" class="btn-realm-shuttle" id="btn-realm-shuttle" aria-haspopup="dialog" aria-controls="modal-realm-shuttle">【🌌 界域穿梭】</button>
           </section>
+          <section class="attrs-block attrs-block--god" aria-labelledby="attrs-h-god">
+            <h4 id="attrs-h-god" class="attrs-block-title">宇宙存檔</h4>
+            <p class="god-core-hint">與 AI「絕對鎖定區」同步；上帝模式可手動改寫因果。</p>
+            <div class="god-field">
+              <label class="god-field-label" for="god-e-name">名號</label>
+              <div class="god-view-wrap"><span class="god-view" id="god-v-name">—</span></div>
+              <div class="god-edit-wrap"><input type="text" class="god-input" id="god-e-name" maxlength="200" autocomplete="off" /></div>
+            </div>
+            <div class="god-field">
+              <label class="god-field-label" for="god-e-realm">境界</label>
+              <div class="god-view-wrap"><span class="god-view" id="god-v-realm">—</span></div>
+              <div class="god-edit-wrap"><input type="text" class="god-input" id="god-e-realm" maxlength="200" autocomplete="off" /></div>
+            </div>
+            <div class="god-field">
+              <label class="god-field-label" for="god-e-equip">目前裝備</label>
+              <div class="god-view-wrap"><span class="god-view" id="god-v-equip">—</span></div>
+              <div class="god-edit-wrap"><input type="text" class="god-input" id="god-e-equip" maxlength="200" autocomplete="off" /></div>
+            </div>
+            <div class="god-field">
+              <label class="god-field-label" for="god-e-location">所在位置（單行）</label>
+              <div class="god-view-wrap"><span class="god-view" id="god-v-location">—</span></div>
+              <div class="god-edit-wrap"><input type="text" class="god-input" id="god-e-location" maxlength="500" autocomplete="off" /></div>
+            </div>
+            <div class="god-field">
+              <label class="god-field-label" for="god-e-inventory">行囊（每行一項）</label>
+              <div class="god-view-wrap"><span class="god-view" id="god-v-inventory">—</span></div>
+              <div class="god-edit-wrap"><textarea class="god-textarea" id="god-e-inventory" rows="3" spellcheck="false"></textarea></div>
+            </div>
+            <div class="god-field">
+              <label class="god-field-label" for="god-e-rel">人際關係（JSON 物件）</label>
+              <div class="god-view-wrap"><span class="god-view" id="god-v-rel">—</span></div>
+              <div class="god-edit-wrap"><textarea class="god-textarea" id="god-e-rel" rows="4" spellcheck="false"></textarea></div>
+            </div>
+            <div class="god-field">
+              <label class="god-field-label" for="god-e-milestones">劇情里程碑（每行一則）</label>
+              <div class="god-view-wrap"><span class="god-view" id="god-v-milestones">—</span></div>
+              <div class="god-edit-wrap"><textarea class="god-textarea" id="god-e-milestones" rows="3" spellcheck="false"></textarea></div>
+            </div>
+            <div class="god-field">
+              <label class="god-field-label" for="god-e-summary">前情提要</label>
+              <div class="god-view-wrap"><span class="god-view" id="god-v-summary">—</span></div>
+              <div class="god-edit-wrap"><textarea class="god-textarea" id="god-e-summary" rows="4" spellcheck="false"></textarea></div>
+            </div>
+          </section>
+        </div>
+      </div>
+      <div class="attrs-god-footer">
+        <button type="button" class="god-footer-btn" id="btn-god-mode-edit">上帝模式：編輯</button>
+        <div id="god-mode-action-row" class="god-mode-action-row hidden">
+          <button type="button" class="god-footer-btn god-save" id="btn-god-mode-save">儲存修改</button>
+          <button type="button" class="god-footer-btn god-cancel" id="btn-god-mode-cancel">取消</button>
         </div>
       </div>
     </div>
@@ -2296,6 +2443,7 @@
   <script>
     const TOKEN_KEY = "blade_token";
     const API_TURN_STREAM = "/api/turn_stream";
+    const API_UPDATE_GOD_MODE = "/api/update_god_mode";
     const API_ME = "/api/me";
     const API_LOGIN = "/api/login";
     const API_REGISTER = "/api/register";
@@ -3700,11 +3848,17 @@
       closeModal("modal-rename");
       closeModal("modal-realm-shuttle");
       openModalOnly("modal-attributes");
+      if (window.BladeGodMode && typeof window.BladeGodMode.refresh === "function") {
+        window.BladeGodMode.refresh();
+      }
     }
 
     function closeModal(modalId) {
       const el = document.getElementById(modalId);
       if (!el) return;
+      if (modalId === "modal-attributes" && window.BladeGodMode && typeof window.BladeGodMode.onModalClose === "function") {
+        window.BladeGodMode.onModalClose();
+      }
       el.classList.add("hidden");
       el.setAttribute("aria-hidden", "true");
       if (modalId === "modal-quests") {
@@ -4284,8 +4438,15 @@
       const st = document.getElementById("v-status");
       const ms = document.getElementById("v-mental-state");
       const sn = document.getElementById("v-player-name-sidebar");
+      let nmFromCore = "";
+      if (currentGameState && currentGameState.core_save && currentGameState.core_save.identity) {
+        nmFromCore = String(currentGameState.core_save.identity["名號"] || "").trim();
+      }
+      if (nmFromCore && displayPlayerName) {
+        displayPlayerName.textContent = nmFromCore;
+      }
       if (sn && displayPlayerName) {
-        const nm = (displayPlayerName.textContent || "").trim();
+        const nm = nmFromCore || (displayPlayerName.textContent || "").trim();
         sn.textContent = nm || "—";
       }
       if (!currentGameState) {
@@ -4685,6 +4846,24 @@
         if (story) story.scrollTo({ top: story.scrollHeight, behavior: "smooth" });
       });
     });
+
+    if (window.BladeGodMode && typeof window.BladeGodMode.init === "function") {
+      window.BladeGodMode.init({
+        apiUrl: API_UPDATE_GOD_MODE,
+        modalId: "modal-attributes",
+        authHeadersFn: () => authHeaders(true),
+        getGameState: () => currentGameState,
+        applyGameState: (gs) => applyGameState(gs, { animateLastAssistant: false }),
+        setError: (msg) => {
+          errEl.textContent = msg || "";
+        },
+        setLoading,
+        onUnauthorized: () => {
+          localStorage.removeItem(TOKEN_KEY);
+          showAuth();
+        },
+      });
+    }
 
     (async function boot() {
       const t = getToken();
