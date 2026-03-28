@@ -1836,6 +1836,14 @@ def empty_game_state() -> dict[str, Any]:
         "energy": _default_energy(),
         "last_narrative": "",
         "opening_tags": [],
+        "core_save": {
+            "identity": {"名號": "—", "境界": "練氣守一", "目前裝備": "無"},
+            "inventory": [],
+            "relationships": {},
+            "location": "晨曦市·咖啡廳",
+            "milestones": [],
+            "summary": "",
+        },
     }
 
 
@@ -1907,6 +1915,21 @@ def fallback_opening_game_state(
     gs["current_location"] = random_opening_location()
     _apply_reincarnation_boon(gs, past_life_echo)
     _ensure_game_state_shape(gs)
+    cs = gs["core_save"]
+    cs["identity"]["名號"] = player_name.strip() or "—"
+    loc = normalize_current_location(gs.get("current_location"))
+    joined = "·".join(
+        p
+        for p in (loc["plane"], loc["world"], loc["address"])
+        if p and str(p).strip() and str(p) != "未定"
+    )
+    if joined:
+        cs["location"] = joined[:500]
+    cs["inventory"] = [
+        str(it.get("name"))
+        for it in (inv0.get("items") or [])
+        if isinstance(it, dict) and it.get("name")
+    ]
     return gs
 
 
@@ -2045,6 +2068,17 @@ SYSTEM_PROMPT = """你是《刃界錄》的文字 RPG 敘事 GM。寫給**一般
 10. 必備："status"、"mental_state"；**建議**輸出 "rank"（繁體各≤48字）。"rank" 僅敘事對照，**介面境界由 skills 推算**。"status"＝肉身／處境；"mental_state"＝理智與靈魂穩定度，**須與本回合 [ATTR] 理智及劇情聯動**。**勿**與 companions.entries[].status 混淆。
 11. **建議每回合輸出 "energy"**：物件，鍵 "current"、"max"（非負整數，current≤max）。休息、冥想、換電池／充能、服藥回氣等敘事成立時**提高 current**；**勿**在 JSON 內重複扣除玩家本回合已點選之 **[消耗]** 抉擇所標「能量 xN」（該扣減由後端執行）。energy 歸零時 status 可能帶「虛弱／枯竭」後果，須在【因果結算】寫出行動艱難與高階招式不可用或極易失手。
 12. 不要重複貼上上一回合全文；不要解釋 JSON。"""
+
+# 回合 API：短期上下文條數與長期壓縮門檻
+MEMORY_SHORT_SEND = 5
+MEMORY_COMPRESS_THRESHOLD = 15
+MEMORY_KEEP_AFTER_COMPRESS = 5
+UPDATE_STATE_TAG = "[UPDATE_STATE]"
+
+MASTER_PROMPT_SLIM = """【刃界錄｜回合用緊湊規則】
+你是繁體中文文字 RPG 敘事 GM：白話、具體、可畫面化；禁止現實國名／城市／行政區／著名地標等（須完全架空專名）。
+每回合僅輸出「一則完整 JSON 物件」（禁止 markdown、禁止 JSON 外文字），含 narrative（【因果結算】【現狀】【抉擇】恰好四選項）、行末 [ATTR: 道行=整數, 理智=整數, 賽博強化=整數, 業力=整數, 壽元=整數]、current_location、status、mental_state、rank；並視劇情更新 inventory、skills、companions、quests、energy 等（鍵名與結構須與《刃界錄》主規則一致，細節你自行依上下文補齊）。
+若劇情涉及**獲得物品、人際變動、位置移動、境界突破或重大轉折**，JSON 結束後另起一行追加（供後端解析並自玩家畫面移除）：[UPDATE_STATE] 後接**單一** JSON 物件，可含 "identity"（鍵：名號、境界、目前裝備；舊鍵 "character" 亦可）、"inventory"（字串陣列，新獲武器／道具名）、"relationships"（NPC→身份或好感描述）、"location"（單行精確位置）、"milestones"（字串陣列，本回合重大劇情節點）、"summary"（併入【劇情前情提要】的短片段）。無變更可省略 [UPDATE_STATE]。"""
 
 
 PANEL_USER_LINES: dict[str, str] = {
@@ -2472,6 +2506,280 @@ def _ensure_game_state_shape(game_state: dict[str, Any]) -> None:
     apply_derived_rank_from_skills(game_state)
     apply_energy_max_from_skill_weights(game_state)
     clamp_and_sync_energy(game_state)
+    _ensure_core_save(game_state)
+
+
+def _default_core_save(player_name: str) -> dict[str, Any]:
+    nm = (player_name or "").strip() or "—"
+    return {
+        "identity": {"名號": nm, "境界": "練氣守一", "目前裝備": "無"},
+        "inventory": [],
+        "relationships": {},
+        "location": "晨曦市·咖啡廳",
+        "milestones": [],
+        "summary": "",
+    }
+
+
+def _migrate_permanent_state_to_core_save(game_state: dict[str, Any]) -> None:
+    perm = game_state.get("permanent_state")
+    if not isinstance(perm, dict):
+        return
+    cs = _default_core_save("—")
+    ch = perm.get("character")
+    if isinstance(ch, dict):
+        for k in ("名號", "境界", "目前裝備"):
+            if k in ch and str(ch.get(k) or "").strip():
+                cs["identity"][k] = str(ch[k]).strip()[:200]
+    if isinstance(perm.get("inventory"), list):
+        cs["inventory"] = [str(x).strip()[:200] for x in perm["inventory"] if str(x).strip()]
+    if isinstance(perm.get("relationships"), dict):
+        cs["relationships"] = dict(perm["relationships"])
+    if isinstance(perm.get("location"), str) and perm["location"].strip():
+        cs["location"] = perm["location"].strip()[:500]
+    if isinstance(perm.get("summary"), str):
+        cs["summary"] = perm["summary"][:8000]
+    game_state["core_save"] = cs
+    del game_state["permanent_state"]
+
+
+def _ensure_core_save(game_state: dict[str, Any]) -> None:
+    if isinstance(game_state.get("permanent_state"), dict):
+        _migrate_permanent_state_to_core_save(game_state)
+    base = _default_core_save("—")
+    if not isinstance(game_state.get("core_save"), dict):
+        game_state["core_save"] = base.copy()
+    cs = game_state["core_save"]
+    id0 = base["identity"]
+    idt = cs.get("identity")
+    if not isinstance(idt, dict):
+        cs["identity"] = id0.copy()
+    else:
+        for kk, vv in id0.items():
+            if kk not in idt:
+                idt[kk] = vv
+    if not isinstance(cs.get("inventory"), list):
+        cs["inventory"] = []
+    if not isinstance(cs.get("relationships"), dict):
+        cs["relationships"] = {}
+    if "location" not in cs or not isinstance(cs["location"], str):
+        cs["location"] = base["location"]
+    if not isinstance(cs.get("milestones"), list):
+        cs["milestones"] = []
+    if "summary" not in cs or not isinstance(cs["summary"], str):
+        cs["summary"] = ""
+    loc = normalize_current_location(game_state.get("current_location"))
+    if (
+        cs["location"] == base["location"]
+        and loc.get("plane") not in (None, "", "未定")
+    ):
+        parts = [loc["plane"], loc["world"], loc["address"]]
+        joined = "·".join(p for p in parts if p and str(p).strip() and str(p) != "未定")
+        if joined:
+            cs["location"] = joined[:500]
+
+
+def _combined_inventory_truth_lines(game_state: dict[str, Any]) -> str:
+    cs = game_state.get("core_save") or {}
+    acc: list[str] = []
+    for x in cs.get("inventory") or []:
+        s = str(x).strip()
+        if s and s not in acc:
+            acc.append(s)
+    inv = game_state.get("inventory") or {}
+    if isinstance(inv, dict):
+        for it in inv.get("items") or []:
+            if isinstance(it, dict):
+                n = str(it.get("name") or "").strip()
+                if n and n not in acc:
+                    acc.append(n)
+    return "、".join(acc) if acc else "（空）"
+
+
+def _relationships_truth_lines(rel: Any) -> str:
+    if not isinstance(rel, dict) or not rel:
+        return "（尚無）"
+    parts: list[str] = []
+    for k, v in list(rel.items())[:32]:
+        parts.append(f"{k}：{v}")
+    return "；".join(parts)
+
+
+def _milestones_truth_lines(ms: Any) -> str:
+    if not isinstance(ms, list) or not ms:
+        return "（尚無）"
+    parts: list[str] = []
+    for x in ms[:24]:
+        s = str(x).strip()
+        if s:
+            parts.append(s)
+    return "；".join(parts) if parts else "（尚無）"
+
+
+def format_absolute_lock_block(game_state: dict[str, Any]) -> str:
+    """【絕對鎖定區】僅含永恆欄位；前情提要另段注入，對話裁切不會動到此區資料。"""
+    _ensure_core_save(game_state)
+    cs = game_state["core_save"]
+    idt = cs["identity"]
+    name = str(idt.get("名號", "—"))
+    jing = str(idt.get("境界", "—"))
+    equip = str(idt.get("目前裝備", "無"))
+    loc = str(cs.get("location", ""))
+    inv_s = _combined_inventory_truth_lines(game_state)
+    rel_s = _relationships_truth_lines(cs.get("relationships"))
+    ms_s = _milestones_truth_lines(cs.get("milestones"))
+    return (
+        "【當前宇宙唯一真理 - AI 必須嚴格遵守】\n"
+        f"玩家名號：{name} | 當前境界：{jing}\n"
+        f"所在位置：{loc}\n"
+        f"目前裝備：{equip}\n"
+        f"行囊清單：{inv_s}\n"
+        f"重要人際關係：{rel_s}\n"
+        f"劇情里程碑：{ms_s}"
+    )
+
+
+def build_final_prompt_for_turn(game_state: dict[str, Any], player_name: str) -> str:
+    _ensure_core_save(game_state)
+    idt = game_state["core_save"]["identity"]
+    pn = (player_name or "").strip()
+    if pn:
+        idt["名號"] = pn
+    lock = format_absolute_lock_block(game_state)
+    summary = (game_state["core_save"].get("summary") or "").strip() or "（無）"
+    preface = f"【劇情前情提要】\n{summary}"
+    geo = FICTIONAL_GEO_ANCHOR.split("\n")[0].strip()
+    return f"{lock}\n\n{preface}\n\n{geo}\n\n{MASTER_PROMPT_SLIM}"
+
+
+def _split_update_state(raw: str) -> tuple[str, dict[str, Any] | None]:
+    s = raw.strip()
+    tag = UPDATE_STATE_TAG
+    i = s.rfind(tag)
+    if i < 0:
+        return s, None
+    main = s[:i].strip()
+    tail = s[i + len(tag) :].strip()
+    if not tail:
+        return main, None
+    try:
+        patch = json.loads(tail)
+    except json.JSONDecodeError:
+        try:
+            patch = _extract_json_object(tail)
+        except ValueError:
+            return main, None
+    if not isinstance(patch, dict):
+        return main, None
+    return main, patch
+
+
+def _apply_location_string_to_current(game_state: dict[str, Any], loc_line: str) -> None:
+    line = loc_line.strip()
+    if not line:
+        return
+    parts = [p.strip() for p in line.split("·") if p.strip()]
+    if len(parts) >= 3:
+        game_state["current_location"] = normalize_current_location(
+            {"plane": parts[0], "world": parts[1], "address": "·".join(parts[2:])[:120]}
+        )
+    elif len(parts) == 2:
+        game_state["current_location"] = normalize_current_location(
+            {"plane": parts[0], "world": parts[1], "address": parts[1]}
+        )
+    else:
+        cur = normalize_current_location(game_state.get("current_location"))
+        cur["address"] = parts[0][:120]
+        game_state["current_location"] = cur
+    enforce_mundane_world_label(game_state)
+
+
+def _apply_core_save_patch(
+    game_state: dict[str, Any], patch: dict[str, Any] | None
+) -> None:
+    if not patch:
+        return
+    _ensure_core_save(game_state)
+    cs = game_state["core_save"]
+    id_patch = patch.get("identity")
+    if id_patch is None and isinstance(patch.get("character"), dict):
+        id_patch = patch["character"]
+    if isinstance(id_patch, dict):
+        idt = cs["identity"]
+        for kk, vv in id_patch.items():
+            if isinstance(vv, str) and vv.strip():
+                idt[str(kk)] = vv.strip()[:200]
+        jing = idt.get("境界")
+        if isinstance(jing, str) and jing.strip():
+            game_state["rank"] = jing.strip()[:48]
+    if "inventory" in patch and isinstance(patch["inventory"], list):
+        for x in patch["inventory"]:
+            s = str(x).strip()
+            if s and s not in cs["inventory"]:
+                cs["inventory"].append(s[:200])
+    if "relationships" in patch and isinstance(patch["relationships"], dict):
+        for kk, vv in patch["relationships"].items():
+            cs["relationships"][str(kk)[:120]] = str(vv)[:500]
+    if "location" in patch and isinstance(patch["location"], str) and patch["location"].strip():
+        cs["location"] = patch["location"].strip()[:500]
+        _apply_location_string_to_current(game_state, cs["location"])
+    if "milestones" in patch and isinstance(patch["milestones"], list):
+        for x in patch["milestones"]:
+            s = str(x).strip()
+            if s and s not in cs["milestones"]:
+                cs["milestones"].append(s[:500])
+        cs["milestones"] = cs["milestones"][-64:]
+    if "summary" in patch and isinstance(patch["summary"], str) and patch["summary"].strip():
+        add = patch["summary"].strip()
+        if cs["summary"].strip():
+            cs["summary"] = (cs["summary"].rstrip() + "\n" + add)[:8000]
+        else:
+            cs["summary"] = add[:8000]
+
+
+async def _maybe_compress_message_history(game_state: dict[str, Any]) -> None:
+    hist = game_state.get("messages")
+    if not isinstance(hist, list) or len(hist) <= MEMORY_COMPRESS_THRESHOLD:
+        return
+    to_fold = hist[:-MEMORY_KEEP_AFTER_COMPRESS]
+    keep = hist[-MEMORY_KEEP_AFTER_COMPRESS:]
+    if not to_fold:
+        return
+    _ensure_core_save(game_state)
+    cs = game_state["core_save"]
+    existing = (cs.get("summary") or "").strip()
+    dialogue_parts: list[str] = []
+    for m in to_fold:
+        role = str(m.get("role", ""))
+        content = str(m.get("content") or "").strip()
+        if not content:
+            continue
+        dialogue_parts.append(f"{role}：{content[:6000]}")
+    dialogue = "\n\n---\n\n".join(dialogue_parts)
+    sys_m = (
+        "你是編輯。將【待合併對話】濃縮為繁體中文「劇情前情提要」，"
+        "承接【既有提要】、不重複客套，400 字內，只輸出提要正文。"
+    )
+    user_m = f"【既有提要】\n{existing or '（無）'}\n\n【待合併對話】\n{dialogue}"
+    try:
+        summary_new = await _call_poe(
+            [
+                {"role": "system", "content": sys_m},
+                {"role": "user", "content": user_m},
+            ],
+            temperature=0.35,
+        )
+        t = summary_new.strip()
+        if t:
+            if existing:
+                cs["summary"] = (existing + "\n\n" + t)[:8000]
+            else:
+                cs["summary"] = t[:8000]
+    except HTTPException:
+        cs["summary"] = (
+            (existing + "\n\n（舊對話已裁切；摘要生成失敗）") if existing else "（舊對話已裁切；摘要生成失敗）"
+        )[:8000]
+    game_state["messages"] = keep
 
 
 def hash_password(password: str) -> str:
@@ -2797,26 +3105,32 @@ async def _call_poe_stream(
         raise HTTPException(status_code=502, detail=f"Poe 連線失敗：{e!s}") from e
 
 
-def _turn_prepare_messages(
+async def _turn_prepare_messages(
     body: TurnBody, auth: tuple[int, str, str, dict[str, Any]]
 ) -> tuple[int, dict[str, Any], list[dict[str, str]], str, str]:
     user_id, _username, player_name, game_state = auth
     _ensure_game_state_shape(game_state)
+    await _maybe_compress_message_history(game_state)
     bump_quest_action_tick(game_state)
 
-    sys_ctx = system_prompt_with_session_context(game_state)
+    sys_ctx = build_final_prompt_for_turn(game_state, player_name)
     _cmb = custom_martial_bonus_system_block(game_state, body.choice.strip())
     if _cmb:
         sys_ctx += "\n\n" + _cmb
     msgs: list[dict[str, str]] = [
         {"role": "system", "content": sys_ctx},
     ]
-    for m in game_state["messages"]:
-        role = m.get("role", "")
-        content = (m.get("content") or "").strip()
-        if role not in ("user", "assistant") or not content:
-            continue
-        msgs.append({"role": role, "content": content})
+    hist: list[dict[str, Any]] = [
+        m
+        for m in game_state["messages"]
+        if m.get("role") in ("user", "assistant")
+        and str(m.get("content") or "").strip()
+    ]
+    tail = hist[-MEMORY_SHORT_SEND:]
+    for m in tail:
+        msgs.append(
+            {"role": str(m["role"]), "content": str(m.get("content") or "").strip()}
+        )
     choice_line = f"【道號｜{player_name}】{body.choice.strip()}"
     user_content = f"【玩家行動】{choice_line}"
     msgs.append({"role": "user", "content": user_content})
@@ -2831,21 +3145,22 @@ async def _finalize_turn_from_model_raw(
     user_content: str,
     choice_stripped: str,
 ) -> dict[str, Any]:
+    raw_body, patch = _split_update_state(raw)
     prev_stats = dict(game_state["stats"])
     try:
-        parsed = _extract_json_object(raw)
+        parsed = _extract_json_object(raw_body)
     except ValueError:
-        parsed = {"narrative": raw}
+        parsed = {"narrative": raw_body}
 
     narrative = parsed.get("narrative")
     if not isinstance(narrative, str) or not narrative.strip():
-        narrative = raw
+        narrative = raw_body
 
     narrative_raw = str(narrative).strip()
     clean_nar, stats = _merge_narrative_attrs_into_stats(
         narrative_raw, parsed, prev_stats
     )
-    raw_stored = _rewrite_assistant_raw_with_clean_narrative(raw, clean_nar)
+    raw_stored = _rewrite_assistant_raw_with_clean_narrative(raw_body, clean_nar)
 
     game_state["messages"].append({"role": "user", "content": user_content})
     game_state["messages"].append({"role": "assistant", "content": raw_stored})
@@ -2864,6 +3179,16 @@ async def _finalize_turn_from_model_raw(
     apply_derived_rank_from_skills(game_state)
     apply_energy_max_from_skill_weights(game_state)
     clamp_and_sync_energy(game_state)
+    loc = normalize_current_location(game_state.get("current_location"))
+    joined = "·".join(
+        p
+        for p in (loc["plane"], loc["world"], loc["address"])
+        if p and str(p).strip() and str(p) != "未定"
+    )
+    if joined:
+        _ensure_core_save(game_state)
+        game_state["core_save"]["location"] = joined[:500]
+    _apply_core_save_patch(game_state, patch)
 
     await maybe_evolve_shelved_quests(game_state, force=False)
 
@@ -2945,6 +3270,22 @@ async def generate_opening_game_state(
         gs["current_location"] = random_opening_location()
     _apply_reincarnation_boon(gs, past_life_echo)
     _ensure_game_state_shape(gs)
+    cs = gs["core_save"]
+    cs["identity"]["名號"] = player_name.strip() or "—"
+    loc2 = normalize_current_location(gs.get("current_location"))
+    joined = "·".join(
+        p
+        for p in (loc2["plane"], loc2["world"], loc2["address"])
+        if p and str(p).strip() and str(p) != "未定"
+    )
+    if joined:
+        cs["location"] = joined[:500]
+    inv_cur = gs.get("inventory") or {}
+    cs["inventory"] = [
+        str(it.get("name"))
+        for it in (inv_cur.get("items") or [])
+        if isinstance(it, dict) and it.get("name")
+    ]
     return gs
 
 
@@ -3484,8 +3825,8 @@ async def quest_track(body: QuestTrackBody, auth: AuthUser) -> dict[str, Any]:
 
 @app.post("/api/turn")
 async def turn(body: TurnBody, auth: AuthUser) -> dict[str, Any]:
-    user_id, game_state, msgs, user_content, choice_stripped = _turn_prepare_messages(
-        body, auth
+    user_id, game_state, msgs, user_content, choice_stripped = (
+        await _turn_prepare_messages(body, auth)
     )
     raw = await _call_poe(msgs)
     return await _finalize_turn_from_model_raw(
@@ -3504,8 +3845,8 @@ def _sse_error_payload(exc: HTTPException) -> str:
 
 @app.post("/api/turn_stream")
 async def turn_stream(body: TurnBody, auth: AuthUser) -> StreamingResponse:
-    user_id, game_state, msgs, user_content, choice_stripped = _turn_prepare_messages(
-        body, auth
+    user_id, game_state, msgs, user_content, choice_stripped = (
+        await _turn_prepare_messages(body, auth)
     )
 
     async def event_gen():
