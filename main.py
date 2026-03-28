@@ -4,6 +4,7 @@ Blade 風格文字 RPG — FastAPI：Poe API、SQLite、隨機開局、面板查
 
 from __future__ import annotations
 
+import copy
 import hashlib
 import json
 import os
@@ -11,6 +12,8 @@ import random
 import re
 import secrets
 import sqlite3
+import threading
+import time
 from contextlib import contextmanager
 from typing import Annotated, Any, Literal
 
@@ -38,6 +41,92 @@ def _poe_max_tokens() -> int:
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "blade_rpg.db")
+SAVE_DATA_PATH = os.path.join(BASE_DIR, "save_data.json")
+_SAVE_FILE_LOCK = threading.Lock()
+_persistent_game_states: dict[int, dict[str, Any]] = {}
+
+
+def _backup_corrupt_save_data_file(_reason: str) -> None:
+    if not os.path.isfile(SAVE_DATA_PATH):
+        return
+    dest = f"{SAVE_DATA_PATH}.broken.{int(time.time())}"
+    try:
+        os.replace(SAVE_DATA_PATH, dest)
+    except OSError:
+        try:
+            os.remove(SAVE_DATA_PATH)
+        except OSError:
+            pass
+
+
+def _flush_persistent_save_file_unlocked() -> None:
+    payload: dict[str, Any] = {
+        "version": 1,
+        "by_user_id": {
+            str(uid): st for uid, st in _persistent_game_states.items()
+        },
+    }
+    tmp_path = SAVE_DATA_PATH + ".tmp"
+    try:
+        with open(tmp_path, "w", encoding="utf-8") as fp:
+            json.dump(payload, fp, ensure_ascii=False, indent=2)
+        os.replace(tmp_path, SAVE_DATA_PATH)
+    except OSError:
+        try:
+            if os.path.isfile(tmp_path):
+                os.remove(tmp_path)
+        except OSError:
+            pass
+
+
+def load_game_state() -> None:
+    """啟動時從 save_data.json 載入各使用者 game_state 至記憶體；檔案缺失或毀損則安全降級。"""
+    global _persistent_game_states
+    with _SAVE_FILE_LOCK:
+        _persistent_game_states = {}
+        if not os.path.isfile(SAVE_DATA_PATH):
+            return
+        try:
+            with open(SAVE_DATA_PATH, encoding="utf-8") as fp:
+                raw = json.load(fp)
+        except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+            _backup_corrupt_save_data_file(str(exc))
+            _persistent_game_states = {}
+            return
+        if not isinstance(raw, dict):
+            _backup_corrupt_save_data_file("root_not_object")
+            _persistent_game_states = {}
+            return
+        bucket = raw.get("by_user_id")
+        if not isinstance(bucket, dict):
+            bucket = raw.get("users")
+        if not isinstance(bucket, dict):
+            _persistent_game_states = {}
+            return
+        loaded: dict[int, dict[str, Any]] = {}
+        for key, val in bucket.items():
+            try:
+                uid = int(key)
+            except (TypeError, ValueError):
+                continue
+            if isinstance(val, dict):
+                loaded[uid] = val
+        _persistent_game_states = loaded
+
+
+def save_game_state(user_id: int, game_state: dict[str, Any]) -> None:
+    """將指定使用者的 game_state 寫入記憶體鏡像並序列化至 save_data.json（原子取代）。"""
+    with _SAVE_FILE_LOCK:
+        _persistent_game_states[user_id] = copy.deepcopy(game_state)
+        _flush_persistent_save_file_unlocked()
+
+
+def _get_persistent_game_state_copy(user_id: int) -> dict[str, Any] | None:
+    with _SAVE_FILE_LOCK:
+        st = _persistent_game_states.get(user_id)
+        if st is None:
+            return None
+        return copy.deepcopy(st)
 
 OPENING_TAGS = [
     "亞空間",
@@ -2896,6 +2985,7 @@ def save_user_game_state(conn: sqlite3.Connection, user_id: int, game_state: dic
         "UPDATE users SET game_state = ? WHERE id = ?",
         (json.dumps(game_state, ensure_ascii=False), user_id),
     )
+    save_game_state(user_id, game_state)
 
 
 class RegisterBody(BaseModel):
@@ -2957,6 +3047,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 def _startup() -> None:
+    load_game_state()
     init_db()
 
 
@@ -2972,14 +3063,19 @@ def auth_user(
         row = get_user_by_token(conn, token)
         if row is None:
             raise HTTPException(status_code=401, detail="登入已失效，請重新登入")
-        try:
-            game_state = json.loads(row["game_state"])
-        except json.JSONDecodeError:
-            tags = pick_opening_tags()
-            game_state = fallback_opening_game_state(str(row["player_name"]), tags)
-            save_user_game_state(conn, int(row["id"]), game_state)
+        user_id = int(row["id"])
+        game_state = _get_persistent_game_state_copy(user_id)
+        if game_state is None:
+            try:
+                game_state = json.loads(row["game_state"])
+            except json.JSONDecodeError:
+                tags = pick_opening_tags()
+                game_state = fallback_opening_game_state(str(row["player_name"]), tags)
+                save_user_game_state(conn, user_id, game_state)
+            else:
+                save_game_state(user_id, game_state)
         _ensure_game_state_shape(game_state)
-        return int(row["id"]), str(row["username"]), str(row["player_name"]), game_state
+        return user_id, str(row["username"]), str(row["player_name"]), game_state
 
 
 AuthUser = Annotated[tuple[int, str, str, dict[str, Any]], Depends(auth_user)]
@@ -3391,6 +3487,7 @@ async def register(body: RegisterBody) -> dict[str, Any]:
             )
     except sqlite3.IntegrityError:
         raise HTTPException(status_code=409, detail="此帳號已被使用") from None
+    save_game_state(uid, gs)
     return {
         "token": token,
         "username": u,
@@ -3414,12 +3511,17 @@ async def login(body: LoginBody) -> dict[str, Any]:
             "INSERT INTO sessions (token, user_id) VALUES (?,?)",
             (token, row["id"]),
         )
-        try:
-            game_state = json.loads(row["game_state"])
-        except json.JSONDecodeError:
-            tags = pick_opening_tags()
-            game_state = fallback_opening_game_state(str(row["player_name"]), tags)
-            save_user_game_state(conn, int(row["id"]), game_state)
+        user_id = int(row["id"])
+        game_state = _get_persistent_game_state_copy(user_id)
+        if game_state is None:
+            try:
+                game_state = json.loads(row["game_state"])
+            except json.JSONDecodeError:
+                tags = pick_opening_tags()
+                game_state = fallback_opening_game_state(str(row["player_name"]), tags)
+                save_user_game_state(conn, user_id, game_state)
+            else:
+                save_game_state(user_id, game_state)
         _ensure_game_state_shape(game_state)
     return {
         "token": token,

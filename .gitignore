@@ -6,3 +6,6 @@ __pycache__/
 .Python
 *.log
 .cursor/
+save_data.json
+save_data.json.tmp
+save_data.json.broken.*
