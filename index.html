@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no, interactive-widget=resizes-content" />
   <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
@@ -16,18 +16,28 @@
   <style>
     :root {
       --bg: #000000;
+      --bg-deep: #101018;
       --gold: #c9a85c;
       --gold-dim: #8a7640;
       --gold-glow: rgba(201, 168, 92, 0.35);
       --border: #3a3220;
       --font: "Georgia", "Times New Roman", "Noto Serif TC", serif;
       --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+      --mobile-nav-h: 5.25rem;
     }
     * { box-sizing: border-box; }
     html, body {
       margin: 0;
       height: 100%;
-      background: var(--bg);
+      background-color: var(--bg);
+      background-image: linear-gradient(
+        165deg,
+        #000000 0%,
+        #060608 38%,
+        var(--bg-deep) 72%,
+        #16161c 100%
+      );
+      background-attachment: fixed;
       color: var(--gold);
       font-family: var(--font);
     }
@@ -338,6 +348,7 @@
       background: #0c0a06;
       color: var(--gold);
       border: 1px solid var(--border);
+      border-radius: 8px;
       padding: 0.55rem 0.65rem;
       font-family: inherit;
       font-size: 0.78rem;
@@ -426,24 +437,39 @@
       font-size: 0.8rem;
     }
     .bar {
-      height: 6px;
+      height: 8px;
       background: #1a150c;
       border: 1px solid var(--border);
-      border-radius: 2px;
+      border-radius: 4px;
       box-shadow:
-        0 0 14px rgba(201, 168, 92, 0.22),
-        0 0 28px rgba(201, 168, 92, 0.08),
+        0 0 12px rgba(201, 168, 92, 0.18),
+        0 0 24px rgba(201, 168, 92, 0.07),
         inset 0 0 10px rgba(0, 0, 0, 0.65);
+    }
+    /* 道行：加粗＋略強金色光暈 */
+    aside.stats .stat-row:has(#b-cultivation) .bar {
+      height: 11px;
+      border-radius: 5px;
+      box-shadow:
+        0 0 16px rgba(201, 168, 92, 0.28),
+        0 0 32px rgba(201, 168, 92, 0.12),
+        inset 0 0 12px rgba(0, 0, 0, 0.68);
+    }
+    aside.stats .stat-row:has(#b-cultivation) .bar > i {
+      border-radius: 3px;
+      box-shadow:
+        0 0 14px rgba(201, 168, 92, 0.45),
+        0 0 28px rgba(201, 168, 92, 0.32),
+        0 0 44px rgba(255, 220, 160, 0.18);
     }
     .bar > i {
       display: block;
       height: 100%;
-      border-radius: 1px;
+      border-radius: 2px;
       background: linear-gradient(90deg, var(--gold-dim), var(--gold));
       box-shadow:
-        0 0 12px var(--gold-glow),
-        0 0 22px rgba(201, 168, 92, 0.55),
-        0 0 36px rgba(201, 168, 92, 0.28);
+        0 0 10px rgba(201, 168, 92, 0.38),
+        0 0 22px rgba(201, 168, 92, 0.22);
       width: 0%;
       transition: width 0.45s ease;
     }
@@ -463,25 +489,54 @@
     }
 
     @media (max-width: 600px) {
-      #game-root {
-        padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+      /* 遊戲進行中鎖定視窗高度，避免鍵盤／捲動把整頁佈局扯裂；登入層仍可由 auth-overlay 覆蓋 */
+      body:has(#game-root:not(.hidden)) {
+        height: 100dvh;
+        max-height: 100dvh;
+        overflow: hidden;
       }
-      #game-root > header {
-        padding-left: 15px;
-        padding-right: 15px;
+      #game-root {
+        flex: 1;
+        min-height: 0;
+        max-height: 100dvh;
+        overflow: hidden;
+        padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
       }
       #game-root > main {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
         padding-left: 0;
         padding-right: 0;
       }
+      #game-root main .panel.story-panel {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      #game-root main aside.stats {
+        flex: 0 1 auto;
+        max-height: min(46vh, 380px);
+        min-height: 0;
+      }
+      #game-root > header {
+        padding-left: 20px;
+        padding-right: 20px;
+        flex-shrink: 0;
+      }
       #game-root .panel-head {
-        padding-left: 15px;
-        padding-right: 15px;
+        padding-left: 20px;
+        padding-right: 20px;
       }
       #game-root .story-scroll {
-        padding-left: 15px;
-        padding-right: 15px;
+        padding: 1rem 20px 1.25rem;
         line-height: 1.6;
+        font-size: clamp(0.95rem, 3.6vw, 1.12rem);
+        scroll-padding-bottom: 1.25rem;
+        -webkit-overflow-scrolling: touch;
       }
       #game-root .story-scroll .story-segment-body,
       #game-root .story-scroll .story-segment-body--rich,
@@ -489,36 +544,54 @@
         line-height: 1.6;
       }
       #game-root .story-choices {
-        padding-left: 15px;
-        padding-right: 15px;
-        gap: 0.55rem;
+        padding: 0.9rem 20px 1.1rem;
+        gap: 0.6rem;
+        flex-shrink: 0;
       }
       #game-root button.story-choice-btn {
-        min-height: 48px;
-        padding: 0.75rem 0.85rem;
+        min-height: 54px;
+        padding: 0.85rem 1rem;
         line-height: 1.5;
+        border-radius: 10px;
+        font-size: 0.88rem;
         display: flex;
         align-items: center;
       }
+      /* 名號／境界／狀態 三欄；精神獨占次列，數值對齊 */
       aside.stats .stat-list {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.65rem 0.6rem;
-        padding: 1rem 15px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.55rem 0.45rem;
+        padding: 1rem 20px;
+        align-items: stretch;
       }
       aside.stats .stat-row.stat-row--sidebar-meta {
         margin-bottom: 0;
         grid-column: span 1;
+        padding: 0.5rem 0.4rem;
+        border: 1px solid rgba(58, 50, 32, 0.55);
+        border-radius: 10px;
+        background: rgba(6, 5, 4, 0.72);
+      }
+      aside.stats .stat-row.stat-row--sidebar-meta:nth-child(4) {
+        grid-column: 1 / -1;
       }
       aside.stats .stat-row.stat-row--sidebar-meta .stat-loc-label {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 0.28rem;
-        letter-spacing: 0.08em;
+        align-items: stretch;
+        gap: 0.32rem;
+        letter-spacing: 0.06em;
+        margin-bottom: 0;
+      }
+      aside.stats .stat-row.stat-row--sidebar-meta .stat-loc-label .val,
+      aside.stats .stat-row.stat-row--sidebar-meta .stat-loc-label .stat-rank-line {
+        text-align: right;
+        align-self: stretch;
+        justify-content: flex-end;
       }
       aside.stats .stat-row.stat-row--sidebar-meta .stat-rank-line {
         max-width: 100%;
-        justify-content: flex-start;
+        justify-content: flex-end;
       }
       aside.stats .stat-row:not(.stat-row--sidebar-meta) {
         grid-column: 1 / -1;
@@ -526,14 +599,39 @@
       }
       aside.stats .btn-realm-shuttle {
         grid-column: 1 / -1;
+        border-radius: 10px;
       }
       #game-root .err {
-        padding-left: 15px;
-        padding-right: 15px;
+        padding-left: 20px;
+        padding-right: 20px;
+        flex-shrink: 0;
       }
       #game-root .custom-action-row {
-        padding-left: 15px;
-        padding-right: 15px;
+        padding: 0.75rem 20px;
+        flex-shrink: 0;
+        position: sticky;
+        bottom: 0;
+        z-index: 35;
+        border-top: 1px solid var(--border);
+        box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.45);
+      }
+      #game-root .custom-action-row input[type="text"] {
+        min-height: 52px;
+        padding: 0.75rem 1rem;
+        font-size: 16px;
+        border-radius: 10px;
+      }
+      #game-root .custom-action-row button.send-custom {
+        min-height: 52px;
+        border-radius: 10px;
+        padding: 0.65rem 1.05rem;
+      }
+      .game-modal button.game-modal-choice-btn {
+        min-height: 52px;
+        padding: 0.8rem 0.95rem;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
       }
       footer.actions {
         display: flex;
@@ -542,6 +640,7 @@
         gap: 0;
         border-top: none;
         background: transparent;
+        flex-shrink: 0;
       }
       footer.actions .actions-row--dock,
       footer.actions .actions-row--secondary {
@@ -549,10 +648,16 @@
       }
       footer.actions .actions-row--secondary {
         grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
-        padding: 0.85rem 15px 0.65rem;
+        gap: 0.55rem;
+        padding: 0.85rem 20px 0.7rem;
         border-top: 1px solid var(--border);
-        background: #050505;
+        background: rgba(5, 5, 5, 0.96);
+      }
+      footer.actions .actions-row--secondary .action {
+        min-height: 50px;
+        padding: 0.8rem 0.55rem;
+        border-radius: 10px;
+        font-size: 0.88rem;
       }
       footer.actions .actions-row--dock {
         position: fixed;
@@ -561,35 +666,44 @@
         bottom: 0;
         z-index: 40;
         grid-template-columns: 1fr 1fr;
-        gap: 0.5rem;
-        padding: 10px 15px;
-        padding-bottom: max(10px, env(safe-area-inset-bottom));
-        background: linear-gradient(180deg, rgba(10, 8, 5, 0.97) 0%, #030303 100%);
-        border-top: 1px solid rgba(201, 168, 92, 0.35);
+        gap: 0.55rem;
+        padding: 12px 20px;
+        padding-bottom: max(12px, env(safe-area-inset-bottom));
+        background: linear-gradient(180deg, rgba(12, 10, 7, 0.98) 0%, #020202 100%);
+        border-top: 1px solid rgba(201, 168, 92, 0.38);
         box-shadow:
-          0 -6px 28px rgba(201, 168, 92, 0.1),
-          0 -16px 48px rgba(0, 0, 0, 0.85);
+          0 -6px 28px rgba(201, 168, 92, 0.12),
+          0 -16px 48px rgba(0, 0, 0, 0.88);
       }
       footer.actions .actions-row--dock .action {
-        min-height: 48px;
-        padding: 0.75rem 0.5rem;
-        font-size: 0.9rem;
+        min-height: 54px;
+        padding: 0.85rem 0.55rem;
+        font-size: 0.95rem;
         letter-spacing: 0.12em;
-      }
-      footer.actions .actions-row--secondary .action {
-        min-height: 44px;
+        border-radius: 10px;
       }
       #game-root .bar {
         box-shadow:
-          0 0 18px rgba(201, 168, 92, 0.3),
-          0 0 36px rgba(201, 168, 92, 0.12),
-          inset 0 0 12px rgba(0, 0, 0, 0.7);
+          0 0 18px rgba(201, 168, 92, 0.26),
+          0 0 36px rgba(201, 168, 92, 0.1),
+          inset 0 0 12px rgba(0, 0, 0, 0.72);
       }
       #game-root .bar > i {
         box-shadow:
-          0 0 14px var(--gold-glow),
-          0 0 26px rgba(201, 168, 92, 0.65),
-          0 0 42px rgba(255, 220, 160, 0.22);
+          0 0 12px rgba(201, 168, 92, 0.42),
+          0 0 26px rgba(201, 168, 92, 0.28);
+      }
+      #game-root aside.stats .stat-row:has(#b-cultivation) .bar {
+        box-shadow:
+          0 0 20px rgba(201, 168, 92, 0.32),
+          0 0 40px rgba(201, 168, 92, 0.14),
+          inset 0 0 12px rgba(0, 0, 0, 0.72);
+      }
+      #game-root aside.stats .stat-row:has(#b-cultivation) .bar > i {
+        box-shadow:
+          0 0 16px rgba(201, 168, 92, 0.5),
+          0 0 32px rgba(201, 168, 92, 0.35),
+          0 0 48px rgba(255, 220, 160, 0.2);
       }
     }
 
@@ -597,6 +711,7 @@
       background: #0c0a06;
       color: var(--gold);
       border: 1px solid var(--border);
+      border-radius: 8px;
       padding: 0.65rem 0.4rem;
       font-family: inherit;
       font-size: 0.82rem;
@@ -705,18 +820,20 @@
       gap: 0.5rem;
       padding: 0.65rem 1rem;
       border-top: 1px solid var(--border);
-      background: #050505;
+      background: rgba(5, 5, 5, 0.92);
+      flex-shrink: 0;
     }
     .custom-action-row input[type="text"] {
       flex: 1;
       min-width: 0;
+      min-height: 44px;
       background: #2d2d2d;
       border: 1px solid #454545;
-      border-radius: 4px;
+      border-radius: 8px;
       color: var(--gold);
-      padding: 0.55rem 0.75rem;
+      padding: 0.65rem 0.85rem;
       font-family: inherit;
-      font-size: 0.88rem;
+      font-size: 0.9rem;
     }
     .custom-action-row input[type="text"]::placeholder {
       color: var(--gold-dim);
@@ -733,10 +850,11 @@
     }
     button.send-custom {
       flex-shrink: 0;
+      min-height: 44px;
       padding: 0.55rem 1rem;
       background: #2d2d2d;
       border: 1px solid var(--border);
-      border-radius: 4px;
+      border-radius: 8px;
       color: var(--gold);
       font-family: inherit;
       font-size: 0.78rem;
@@ -877,6 +995,7 @@
       background: #0c0a06;
       color: var(--gold);
       border: 1px solid var(--border);
+      border-radius: 8px;
       padding: 0.55rem 0.65rem;
       font-family: inherit;
       font-size: 0.78rem;
