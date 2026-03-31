@@ -258,10 +258,89 @@
       display: flex;
       flex-direction: column;
       min-height: 0;
+      position: relative;
     }
     /* 劇情區：敘述／對話極淺灰、純黑底；【】類標題金色；行高 1.8、字距 0.5px 減疲勞 */
     .story-panel-body {
       background: #000000;
+    }
+    /* 右下角非阻塞推演標籤（原全螢幕因果遮罩已移除） */
+    .story-inference-badge {
+      position: absolute;
+      right: 0.45rem;
+      bottom: 0.4rem;
+      z-index: 30;
+      display: none;
+      align-items: center;
+      gap: 0.35rem;
+      max-width: calc(100% - 1.2rem);
+      padding: 0.28rem 0.55rem 0.3rem 0.48rem;
+      border-radius: 999px;
+      border: 1px solid rgba(201, 168, 92, 0.42);
+      background: rgba(6, 5, 4, 0.38);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      box-shadow: 0 1px 12px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+    }
+    .story-inference-badge:not(.hidden) {
+      display: inline-flex;
+    }
+    .story-inference-badge.hidden {
+      display: none !important;
+    }
+    .story-inference-badge__spin {
+      flex-shrink: 0;
+      width: 0.92rem;
+      height: 0.92rem;
+      border: 2px solid rgba(201, 168, 92, 0.28);
+      border-top-color: #c9a85c;
+      border-radius: 50%;
+      animation: story-inference-spin 0.85s linear infinite;
+    }
+    @keyframes story-inference-spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    .story-inference-badge__text {
+      margin: 0;
+      font-size: 0.78rem;
+      letter-spacing: 0.16em;
+      color: var(--gold-dim);
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      animation: story-inference-breathe 2.4s ease-in-out infinite;
+    }
+    @keyframes story-inference-breathe {
+      0%,
+      100% {
+        opacity: 0.55;
+        text-shadow: 0 0 6px rgba(201, 168, 92, 0.15);
+      }
+      50% {
+        opacity: 1;
+        text-shadow: 0 0 10px rgba(201, 168, 92, 0.42);
+      }
+    }
+    @media (max-width: 767px) {
+      .story-inference-badge {
+        right: 0.26rem;
+        bottom: 0.22rem;
+        padding: 0.12rem 0.28rem 0.14rem 0.22rem;
+        gap: 0.16rem;
+      }
+      .story-inference-badge__spin {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-width: 1.5px;
+      }
+      .story-inference-badge__text {
+        font-size: 0.6rem;
+        letter-spacing: 0.05em;
+      }
     }
     #story-scroll,
     #story-scroll .story-segment-body,
@@ -275,7 +354,7 @@
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 1rem 1.25rem 1.2rem;
+      padding: 1rem 1.25rem 2.15rem;
       line-height: 1.8;
       font-size: clamp(0.746rem, 1.566vw, 1.146rem);
       color: #f0f0f0;
@@ -355,52 +434,6 @@
     }
     .game-root--tw-skip {
       cursor: pointer;
-    }
-    .causal-settlement {
-      position: fixed;
-      inset: 0;
-      z-index: 850;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-      background: rgba(0, 0, 0, 0.58);
-      backdrop-filter: blur(4px);
-      -webkit-backdrop-filter: blur(4px);
-    }
-    .causal-settlement.hidden {
-      display: none !important;
-    }
-    .causal-settlement-card {
-      text-align: center;
-      padding: 1.45rem 1.85rem 1.55rem;
-      border: 1px solid #c9a85c;
-      border-radius: 12px;
-      background: rgba(0, 0, 0, 0.94);
-      box-shadow:
-        0 0 32px rgba(201, 168, 92, 0.22),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-      max-width: min(90vw, 320px);
-    }
-    .causal-settlement-ring {
-      width: 46px;
-      height: 46px;
-      margin: 0 auto 1rem;
-      border: 2px solid rgba(201, 168, 92, 0.3);
-      border-top-color: #c9a85c;
-      border-radius: 50%;
-      animation: causal-spin 0.9s linear infinite;
-    }
-    @keyframes causal-spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-    .causal-settlement-text {
-      margin: 0;
-      font-size: 0.76rem;
-      letter-spacing: 0.38em;
-      color: var(--gold-dim);
     }
     .story-choice-preview {
       margin-top: 0.55rem;
@@ -683,7 +716,7 @@
         padding-right: 20px;
       }
       #game-root .story-scroll {
-        padding: 0.55rem 14px 0.45rem;
+        padding: 0.55rem 14px 1.35rem;
         line-height: 1.8;
         font-size: clamp(0.95rem, 3.6vw, 1.12rem);
         letter-spacing: 0.5px;
@@ -2308,8 +2341,18 @@
     <main>
       <section class="panel story-panel">
         <div class="panel-head">劇情</div>
-        <div class="story-panel-body">
+        <div id="story-box" class="story-panel-body">
           <div id="story-scroll" class="story-scroll" aria-live="polite"></div>
+          <div
+            id="story-inference-badge"
+            class="story-inference-badge hidden"
+            role="status"
+            aria-live="polite"
+            aria-hidden="true"
+          >
+            <span class="story-inference-badge__spin" aria-hidden="true"></span>
+            <span class="story-inference-badge__text">感應中...</span>
+          </div>
         </div>
       </section>
       <div id="story-choices" class="story-choices" aria-label="當前抉擇"></div>
@@ -2337,12 +2380,6 @@
         <button type="button" class="action" data-panel="attributes">屬性</button>
       </div>
     </footer>
-    <div id="causal-settlement" class="causal-settlement hidden" aria-hidden="true">
-      <div class="causal-settlement-card" role="status">
-        <div class="causal-settlement-ring" aria-hidden="true"></div>
-        <p class="causal-settlement-text">正在結算因果…</p>
-      </div>
-    </div>
   </div>
   </div>
 
@@ -4341,18 +4378,19 @@
       );
     }
 
-    function setCausalSettlementVisible(on) {
-      const el = document.getElementById("causal-settlement");
+    /** AI 推演中：劇情框右下角漂浮標籤（非全螢幕、不阻擋捲動） */
+    function setStoryInferenceLoading(on) {
+      const el = document.getElementById("story-inference-badge");
       if (!el) return;
-      if (on) {
-        const txt = el.querySelector(".causal-settlement-text");
-        if (txt) {
-          const pick =
-            window.BladeCausalSettlement && typeof window.BladeCausalSettlement.pickPhrase === "function"
-              ? window.BladeCausalSettlement.pickPhrase()
-              : "正在結算因果...";
-          txt.textContent = pick;
-        }
+      const txt = el.querySelector(".story-inference-badge__text");
+      if (on && txt) {
+        const narrow =
+          typeof window.matchMedia === "function" && window.matchMedia("(max-width: 767px)").matches;
+        txt.textContent = narrow
+          ? "感應中..."
+          : window.BladeCausalSettlement && typeof window.BladeCausalSettlement.pickPhrase === "function"
+            ? window.BladeCausalSettlement.pickPhrase()
+            : "感應中...";
       }
       el.classList.toggle("hidden", !on);
       el.setAttribute("aria-hidden", on ? "false" : "true");
@@ -4845,7 +4883,10 @@
       const clearCustomOnSuccess = opts && opts.clearCustom === true;
       errEl.textContent = "";
       setLoading(true);
-      setCausalSettlementVisible(true);
+      setStoryInferenceLoading(true);
+      let liveBodyDiv = null;
+      let liveText = "";
+      let streamSeg = null;
       try {
         const res = await fetch(API_TURN_STREAM, {
           method: "POST",
@@ -4870,23 +4911,18 @@
           throw new Error("缺少 script.js(consumeBladeTurnSse)");
         }
         const reader = res.body.getReader();
-        let liveBodyDiv = null;
-        let liveText = "";
         if (storyScrollEl) {
           detachStoryTypewriterSkip();
           storyScrollEl.classList.remove("story-scroll--tw-skip");
           storyTypewriterGeneration++;
-          storyScrollEl.innerHTML = "";
-          if (storyChoicesEl) {
-            storyChoicesEl.innerHTML = "";
-            storyChoicesEl.classList.remove("story-choices--await-reveal", "story-choices--fade-reveal");
-          }
-          const seg = document.createElement("div");
-          seg.className = "story-segment";
+          appendChronicleDivider();
+          streamSeg = document.createElement("div");
+          streamSeg.className = "story-segment";
           liveBodyDiv = document.createElement("div");
           liveBodyDiv.className = "story-segment-body story-segment-body--rich";
-          seg.appendChild(liveBodyDiv);
-          storyScrollEl.appendChild(seg);
+          streamSeg.appendChild(liveBodyDiv);
+          storyScrollEl.appendChild(streamSeg);
+          scheduleStoryScrollLockToEnd();
         }
         const finalPayload = await window.consumeBladeTurnSse(reader, (delta) => {
           liveText += delta;
@@ -4900,8 +4936,11 @@
         if (clearCustomOnSuccess) customInput.value = "";
       } catch (e) {
         errEl.textContent = String(e.message || e);
+        if (streamSeg && streamSeg.parentNode) {
+          streamSeg.remove();
+        }
       } finally {
-        setCausalSettlementVisible(false);
+        setStoryInferenceLoading(false);
         setLoading(false);
       }
     }

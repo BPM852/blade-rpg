@@ -303,7 +303,7 @@
 })(typeof window !== "undefined" ? window : globalThis);
 
 /**
- * 主畫面因果結算遮罩：轉圈時隨機氛圍文案（由 index.html setCausalSettlementVisible 呼叫）。
+ * 劇情框右下角推演標籤：桌機版隨機氛圍文案（由 index.html setStoryInferenceLoading 呼叫）。
  */
 (function (global) {
   var PHRASES = [
