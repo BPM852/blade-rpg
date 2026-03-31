@@ -9,6 +9,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="刃界錄" />
   <title>刃界錄 — Blade 風文字 RPG</title>
+  <!-- 響應式斷點與 Tailwind 對齊: max-md = max-width 767px, md = min-width 768px (未引入 Tailwind CDN,避免 preflight 覆寫既有樣式) -->
   <link rel="manifest" href="/manifest.json" />
   <!-- 暫用 DiceBear bottts（深色底）作賽博機械感占位圖示，日後可改成本地 assets/icon.png -->
   <link rel="icon" type="image/png" sizes="192x192" href="https://api.dicebear.com/7.x/bottts/png?seed=bladerpg&amp;backgroundColor=1a150c&amp;size=192" />
@@ -143,6 +144,17 @@
       font-size: 0.75rem;
       min-height: 1.2em;
       margin-bottom: 0.5rem;
+    }
+    /* 主遊戲欄：與 Tailwind max-w-[850px] mx-auto 同義，桌機置中；手機仍 100% 寬 */
+    .app-shell {
+      width: 100%;
+      max-width: 850px;
+      margin-left: auto;
+      margin-right: auto;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
     }
     #game-root {
       display: flex;
@@ -621,7 +633,8 @@
       footer.actions { grid-template-columns: repeat(2, 1fr); }
     }
 
-    @media (max-width: 600px) {
+    /* max-md：等同 Tailwind (max-width: 767px)，手機／小平板極致收緊底部操作列 */
+    @media (max-width: 767px) {
       /* 遊戲進行中鎖定視窗高度，避免鍵盤／捲動把整頁佈局扯裂；登入層仍可由 auth-overlay 覆蓋 */
       body:has(#game-root:not(.hidden)) {
         height: 100dvh;
@@ -633,8 +646,8 @@
         min-height: 0;
         max-height: 100dvh;
         overflow: hidden;
-        /* 縮小底部固定列後，預留高度一併收緊，把空間還給劇情區 */
-        --mobile-nav-h: 3.38rem;
+        /* 五鍵合併為固定雙列矩陣後，預留高度收緊 */
+        --mobile-nav-h: 2.72rem;
         padding-bottom: calc(var(--mobile-nav-h) + env(safe-area-inset-bottom, 0px));
       }
       #game-root > main {
@@ -674,7 +687,7 @@
         line-height: 1.8;
         font-size: clamp(0.95rem, 3.6vw, 1.12rem);
         letter-spacing: 0.5px;
-        scroll-padding-bottom: 2.35rem;
+        scroll-padding-bottom: 1.2rem;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
         color: #f0f0f0;
@@ -718,9 +731,9 @@
         padding-bottom: 0.35rem;
         flex-shrink: 0;
       }
-      /* 自訂行動：約 30% 扁平化（高度／內距），與下方按鈕區貼合 */
+      /* 自訂行動：單行緊湊列（約原桌面內距、字級的 1/3 量級） */
       #game-root .custom-action-row {
-        padding: 0.28rem 12px 0.3rem;
+        padding: 0.12rem 8px 0.14rem;
         margin-top: 0;
         margin-bottom: 0;
         flex-shrink: 0;
@@ -728,23 +741,31 @@
         bottom: 0;
         z-index: 35;
         border-top: 1px solid var(--border);
-        box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.35);
-        scroll-margin-bottom: 0.2rem;
-        gap: 0.35rem;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.35);
+        scroll-margin-bottom: 0.12rem;
+        gap: 0.22rem;
+        align-items: stretch;
       }
       #game-root .custom-action-row input[type="text"] {
-        min-height: 36px;
-        padding: 0.48rem 0.68rem;
-        font-size: 16px;
-        line-height: 1.35;
-        border-radius: 7px;
+        min-height: 0;
+        height: 1.65rem;
+        padding: 0 0.32rem;
+        font-size: 0.78rem;
+        line-height: 1.65rem;
+        border-radius: 5px;
+      }
+      #game-root .custom-action-row input[type="text"]::placeholder {
+        font-size: max(0.52rem, 8px);
+        letter-spacing: 0.02em;
       }
       #game-root .custom-action-row button.send-custom {
-        min-height: 36px;
-        border-radius: 7px;
-        padding: 0.44rem 0.72rem;
-        font-size: 11px;
-        letter-spacing: 0.08em;
+        min-height: 0;
+        height: 1.65rem;
+        line-height: 1.65rem;
+        border-radius: 5px;
+        padding: 0 0.4rem;
+        font-size: max(9px, 0.52rem);
+        letter-spacing: 0.05em;
       }
       .game-modal button.game-modal-choice-btn {
         min-height: 52px;
@@ -753,61 +774,60 @@
         display: flex;
         align-items: center;
       }
-      footer.actions {
-        display: flex;
-        flex-direction: column;
-        padding: 0;
-        gap: 0;
-        margin-top: 0;
-        border-top: none;
-        background: transparent;
-        flex-shrink: 0;
-      }
-      footer.actions .actions-row--dock,
-      footer.actions .actions-row--secondary {
+      /* 五鍵合併為固定 3×2 緊湊矩陣（順序：行囊｜武學｜同伴／任務｜屬性／空）；#game-root 提高優先級以壓過 style.css */
+      #game-root footer.actions {
         display: grid;
-      }
-      /* 同伴／任務／屬性：高度、內距、字級約縮 30%，並收緊與上下區塊的垂直間距 */
-      footer.actions .actions-row--secondary {
-        grid-template-columns: 1fr 1fr 1fr;
-        gap: 0.32rem;
-        padding: 0.5rem 14px 0.42rem;
-        margin-bottom: 0;
-        border-top: 1px solid var(--border);
-        background: rgba(5, 5, 5, 0.96);
-      }
-      footer.actions .actions-row--secondary .action {
-        min-height: 35px;
-        padding: 0.54rem 0.36rem;
-        border-radius: 7px;
-        font-size: max(11px, 0.62rem);
-        line-height: 1.25;
-      }
-      footer.actions .actions-row--dock {
-        position: fixed;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 40;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.32rem;
-        padding: 8px 14px;
-        padding-bottom: max(8px, env(safe-area-inset-bottom));
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.12rem 0.18rem;
+        padding: 0.2rem 8px max(0.2rem, env(safe-area-inset-bottom));
+        margin: 0;
         margin-top: 0;
-        background: linear-gradient(180deg, rgba(12, 10, 7, 0.98) 0%, #020202 100%);
         border-top: 1px solid rgba(201, 168, 92, 0.38);
+        background: linear-gradient(180deg, rgba(12, 10, 7, 0.98) 0%, #020202 100%);
         box-shadow:
-          0 -4px 18px rgba(201, 168, 92, 0.1),
-          0 -12px 36px rgba(0, 0, 0, 0.85);
+          0 -3px 12px rgba(201, 168, 92, 0.08),
+          0 -8px 24px rgba(0, 0, 0, 0.82);
+        flex-shrink: 0;
+        position: fixed;
+        bottom: 0;
+        left: 50%;
+        right: auto;
+        z-index: 40;
+        width: 100%;
+        max-width: 850px;
+        transform: translateX(-50%);
       }
-      /* 行囊／武學：同比例縮小 */
-      footer.actions .actions-row--dock .action {
-        min-height: 38px;
-        padding: 0.58rem 0.36rem;
-        font-size: max(11px, 0.67rem);
-        letter-spacing: 0.09em;
-        line-height: 1.25;
-        border-radius: 7px;
+      #game-root footer.actions .actions-row--dock,
+      #game-root footer.actions .actions-row--secondary {
+        display: contents;
+      }
+      #game-root footer.actions .action {
+        min-height: 0;
+        min-width: 0;
+        height: auto;
+        padding: 0.1rem 0.08rem;
+        border-radius: 4px;
+        font-size: max(9px, 0.52rem);
+        letter-spacing: 0.02em;
+        line-height: 1.12;
+        width: 100%;
+        max-width: none;
+        font-weight: 700;
+      }
+      #game-root footer.actions .action[data-panel="inventory"] {
+        order: 1;
+      }
+      #game-root footer.actions .action[data-panel="martial"] {
+        order: 2;
+      }
+      #game-root footer.actions .action[data-panel="companions"] {
+        order: 3;
+      }
+      #game-root footer.actions .action[data-panel="quests"] {
+        order: 4;
+      }
+      #game-root footer.actions .action[data-panel="attributes"] {
+        order: 5;
       }
       #game-stat-list .bar {
         box-shadow:
@@ -831,6 +851,18 @@
           0 0 16px rgba(201, 168, 92, 0.5),
           0 0 32px rgba(201, 168, 92, 0.35),
           0 0 48px rgba(255, 220, 160, 0.2);
+      }
+    }
+
+    @media (min-width: 768px) {
+      body:has(#game-root:not(.hidden)) {
+        height: auto;
+        max-height: none;
+        overflow: visible;
+      }
+      #game-root {
+        max-height: none;
+        padding-bottom: 0;
       }
     }
 
@@ -1099,7 +1131,7 @@
         0 0 36px rgba(201, 168, 92, 0.14);
       overflow: hidden;
     }
-    @media (max-width: 600px) {
+    @media (max-width: 767px) {
       .game-modal--attrs {
         padding: 0.75rem;
       }
@@ -2256,6 +2288,7 @@
     </div>
   </div>
 
+  <div class="app-shell">
   <div id="game-root" class="hidden">
     <header>
       <div class="title-block">
@@ -2310,6 +2343,7 @@
         <p class="causal-settlement-text">正在結算因果…</p>
       </div>
     </div>
+  </div>
   </div>
 
   <div id="modal-inventory" class="game-modal hidden" aria-hidden="true">
@@ -2694,7 +2728,7 @@
         localStorage.removeItem(TOKEN_KEY);
         closeModal("modal-inventory");
         showAuth();
-        throw new Error("登入已失效，請重新登入");
+        throw new Error("登入已失效,請重新登入");
       }
       if (!res.ok) {
         const d = data.detail;
@@ -2759,7 +2793,7 @@
             if (it.equipped) {
               const tag = document.createElement("span");
               tag.className = "inv-equipped-tag";
-              tag.textContent = "［已裝備］";
+              tag.textContent = "[已裝備]";
               line.appendChild(btn);
               line.appendChild(tag);
             } else {
@@ -2774,7 +2808,7 @@
           line.appendChild(meta);
           btn.addEventListener("click", async () => {
             if (kind === "consumable" || kind === "material") {
-              const ok = await showGameConfirm("是否使用「" + it.name + "」？");
+              const ok = await showGameConfirm("是否使用\"" + it.name + "\"?");
               if (!ok) return;
               setInvModalBusy(true);
               errEl.textContent = "";
@@ -2790,7 +2824,7 @@
             } else if (kind === "equipment") {
               const wantUnequip = it.equipped;
               const ok2 = await showGameConfirm(
-                wantUnequip ? "是否卸下「" + it.name + "」？" : "是否裝備「" + it.name + "」？"
+                wantUnequip ? "是否卸下\"" + it.name + "\"?" : "是否裝備\"" + it.name + "\"?"
               );
               if (!ok2) return;
               setInvModalBusy(true);
@@ -2876,10 +2910,10 @@
         const o = JSON.parse(t);
         if (o && typeof o === "object" && !Array.isArray(o)) {
           return Object.entries(o)
-            .map(([k, v]) => k + "：" + (v != null ? String(v) : ""))
-            .join("；");
+            .map(([k, v]) => k + ":" + (v != null ? String(v) : ""))
+            .join(";");
         }
-        if (Array.isArray(o)) return o.map((x) => String(x)).join("、");
+        if (Array.isArray(o)) return o.map((x) => String(x)).join(",");
       } catch { /* ignore */ }
       return t.replace(/["{}[\]]/g, " ").replace(/\s+/g, " ").trim();
     }
@@ -3127,7 +3161,7 @@
         localStorage.removeItem(TOKEN_KEY);
         closeModal("modal-martial");
         showAuth();
-        throw new Error("登入已失效，請重新登入");
+        throw new Error("登入已失效,請重新登入");
       }
       if (!res.ok) {
         const d = data.detail;
@@ -3156,7 +3190,7 @@
       if (isPlayerOrigin) {
         const ob = document.createElement("span");
         ob.className = "ma-origin-badge";
-        ob.textContent = "［自創］";
+        ob.textContent = "[自創]";
         header.appendChild(ob);
       }
       const gradeStr = ent.grade != null ? String(ent.grade).trim() : "";
@@ -3170,7 +3204,7 @@
         const pct = Math.round(ent.fusion_percent || 0);
         const badge = document.createElement("span");
         badge.className = "ma-fusion-badge";
-        badge.textContent = "融合度：" + pct + "%";
+        badge.textContent = "融合度:" + pct + "%";
         header.appendChild(badge);
       } else {
         const tier = ent.realm_tier || "low";
@@ -3184,7 +3218,7 @@
       const descEl = document.createElement("div");
       const hasDesc = !!(ent.description && String(ent.description).trim());
       descEl.className = "ma-skill-desc" + (hasDesc ? "" : " ma-desc-placeholder");
-      descEl.textContent = hasDesc ? String(ent.description).trim() : "（無描述）";
+      descEl.textContent = hasDesc ? String(ent.description).trim() : "(無描述)";
       expand.appendChild(descEl);
 
       if (ent.category === "augment") {
@@ -3215,7 +3249,7 @@
       });
       btnCu.addEventListener("click", async (ev) => {
         ev.stopPropagation();
-        const ok = await showGameConfirm("是否消耗因果進行修煉？");
+        const ok = await showGameConfirm("是否消耗因果進行修煉?");
         if (!ok) return;
         setMartialModalBusy(true);
         errEl.textContent = "";
@@ -3441,13 +3475,13 @@
 
       const titleEl = document.createElement("div");
       titleEl.className = "cp-title-line";
-      titleEl.textContent = ent.title || "（無頭銜）";
+      titleEl.textContent = ent.title || "(無頭銜)";
       expand.appendChild(titleEl);
 
       const pct = Math.round(ent.favor_percent || 0);
       const favorLab = document.createElement("div");
       favorLab.className = "cp-favor-label";
-      favorLab.textContent = "因果羈絆：" + pct + "%";
+      favorLab.textContent = "因果羈絆:" + pct + "%";
       expand.appendChild(favorLab);
 
       const bar = document.createElement("div");
@@ -3460,27 +3494,27 @@
 
       const st = document.createElement("div");
       st.className = "cp-status-line";
-      const race = ent.race_or_faction ? "〔" + ent.race_or_faction + "〕" : "";
-      st.textContent = "狀態：" + ent.status + (race ? " " + race : "");
+      const race = ent.race_or_faction ? "[" + ent.race_or_faction + "]" : "";
+      st.textContent = "狀態:" + ent.status + (race ? " " + race : "");
       expand.appendChild(st);
 
       const desc = document.createElement("div");
       const hasBk = !!(ent.backstory && String(ent.backstory).trim());
       desc.className = "cp-desc" + (hasBk ? "" : " ma-desc-placeholder");
-      desc.textContent = hasBk ? String(ent.backstory).trim() : "（無背景殘簡）";
+      desc.textContent = hasBk ? String(ent.backstory).trim() : "(無背景殘簡)";
       expand.appendChild(desc);
 
       if (ent.signature_ability && String(ent.signature_ability).trim()) {
         const ab = document.createElement("div");
         ab.className = "cp-ability-line";
-        ab.textContent = "異質手段：" + String(ent.signature_ability).trim();
+        ab.textContent = "異質手段:" + String(ent.signature_ability).trim();
         expand.appendChild(ab);
       }
 
       if (ent.visual && String(ent.visual).trim()) {
         const vis = document.createElement("div");
         vis.className = "cp-visual-line";
-        vis.textContent = "視覺印：" + String(ent.visual).trim();
+        vis.textContent = "視覺印:" + String(ent.visual).trim();
         expand.appendChild(vis);
       }
 
@@ -3512,7 +3546,7 @@
         try {
           closeModal("modal-companions");
           companionUiExpandedId = null;
-          await takeTurn("【與同伴「" + ent.name + "」交談】");
+          await takeTurn("【與同伴\"" + ent.name + "\"交談】");
         } catch (e) {
           errEl.textContent = String(e.message || e);
         } finally {
@@ -3522,7 +3556,7 @@
 
       btnOrder.addEventListener("click", async (ev) => {
         ev.stopPropagation();
-        const detail = window.prompt("因果指令：要求其執行之事（冷硬具體）：", "");
+        const detail = window.prompt("因果指令:要求其執行之事(冷硬具體):", "");
         if (detail === null) return;
         const t = String(detail).trim();
         if (!t) return;
@@ -3531,7 +3565,7 @@
         try {
           closeModal("modal-companions");
           companionUiExpandedId = null;
-          await takeTurn("【下達因果指令｜同伴「" + ent.name + "」】" + t);
+          await takeTurn("【下達因果指令|同伴\"" + ent.name + "\"】" + t);
         } catch (e) {
           errEl.textContent = String(e.message || e);
         } finally {
@@ -3551,7 +3585,7 @@
       if (!co.entries.length) {
         const emp = document.createElement("div");
         emp.className = "cp-empty";
-        emp.textContent = "因果簿上無同行者。獨行。";
+        emp.textContent = "因果簿上無同行者.獨行.";
         mount.appendChild(emp);
         return;
       }
@@ -3612,7 +3646,7 @@
       if (!q.entries.length) {
         const p = document.createElement("p");
         p.className = "quest-roster-empty";
-        p.textContent = "冊上無名，靜候下一道因果。";
+        p.textContent = "冊上無名,靜候下一道因果.";
         mount.appendChild(p);
         return;
       }
@@ -3632,7 +3666,7 @@
         titleRow.className = "quest-card-title-row";
         const nameEl = document.createElement("span");
         nameEl.className = "quest-card-name";
-        nameEl.textContent = e.title != null && String(e.title).trim() ? String(e.title).trim() : "（無名因果）";
+        nameEl.textContent = e.title != null && String(e.title).trim() ? String(e.title).trim() : "(無名因果)";
         titleRow.appendChild(nameEl);
         if (e.causal_shift === true) {
           const shift = document.createElement("span");
@@ -3682,7 +3716,7 @@
           localStorage.removeItem(TOKEN_KEY);
           closeModal("modal-quests");
           showAuth();
-          errEl.textContent = "登入已失效，請重新登入";
+          errEl.textContent = "登入已失效,請重新登入";
           return;
         }
         if (!res.ok) {
@@ -3726,7 +3760,7 @@
           localStorage.removeItem(TOKEN_KEY);
           closeModal("modal-quests");
           showAuth();
-          errEl.textContent = "登入已失效，請重新登入";
+          errEl.textContent = "登入已失效,請重新登入";
           return;
         }
         if (!res.ok) {
@@ -4061,7 +4095,11 @@
       const out = [];
       for (let i = 0; i < msgs.length; i++) {
         const m = msgs[i];
-        if (m.role === "user" && typeof m.content === "string" && m.content.includes("【面板｜")) {
+        if (
+          m.role === "user" &&
+          typeof m.content === "string" &&
+          (m.content.includes("【面板|") || m.content.includes("【面板｜"))
+        ) {
           if (i + 1 < msgs.length && msgs[i + 1].role === "assistant") i++;
           continue;
         }
@@ -4101,7 +4139,7 @@
       });
     }
 
-    /** 劇情區外側（選項列等）重排後再對齊底部，避免一次捲動時 scrollHeight 尚未穩定 */
+    /** 劇情區外側(選項列等)重排後再對齊底部,避免一次捲動時 scrollHeight 尚未穩定 */
     function scheduleStoryScrollLockToEnd() {
       scrollStoryToBottom();
       const bump = () => {
@@ -4231,7 +4269,7 @@
           const pick =
             window.BladeCausalSettlement && typeof window.BladeCausalSettlement.pickPhrase === "function"
               ? window.BladeCausalSettlement.pickPhrase()
-              : "正在結算因果…";
+              : "正在結算因果...";
           txt.textContent = pick;
         }
       }
@@ -4254,7 +4292,7 @@
           const line = slice[i];
           decorateChoiceButton(btn, line, false);
           const hint = choiceLinePlainText(line);
-          btn.setAttribute("aria-label", "選項 " + num + "：" + hint);
+          btn.setAttribute("aria-label", "選項 " + num + ": " + hint);
           btn.title = hint;
           btn.addEventListener("click", () => takeTurn(num));
         } else {
@@ -4527,7 +4565,7 @@
           localStorage.removeItem(TOKEN_KEY);
           closeModal(modalId);
           showAuth();
-          errEl.textContent = "登入已失效，請重新登入";
+          errEl.textContent = "登入已失效,請重新登入";
           return;
         }
         if (!res.ok) {
@@ -4588,7 +4626,7 @@
       if (!currentGameState) {
         if (rk) rk.textContent = "凡胎肉身";
         if (rh) {
-          rh.title = "當前修為尚未以核心心法為基（凡胎／雜學或僅內外門技）";
+          rh.title = "當前修為尚未以核心心法為基(凡胎/雜學或僅內外門技)";
           rh.setAttribute("aria-label", rh.title);
         }
         if (st) st.textContent = "健康";
@@ -4604,8 +4642,8 @@
       if (rk) rk.textContent = (r != null && String(r).trim()) ? String(r).trim() : "凡胎肉身";
       if (rh) {
         rh.title = core
-          ? "當前修為由「" + core + "」支撐"
-          : "當前修為尚未以核心心法為基（凡胎／雜學或僅內外門技）";
+          ? "當前修為由\"" + core + "\"支撐"
+          : "當前修為尚未以核心心法為基(凡胎/雜學或僅內外門技)";
         rh.setAttribute("aria-label", rh.title);
       }
       if (st) st.textContent = (s != null && String(s).trim()) ? String(s).trim() : "健康";
@@ -4691,7 +4729,7 @@
         if (res.status === 401) {
           localStorage.removeItem(TOKEN_KEY);
           showAuth();
-          throw new Error("登入已失效，請重新登入");
+          throw new Error("登入已失效,請重新登入");
         }
         if (!res.ok) {
           const d = data.detail;
@@ -4723,7 +4761,7 @@
         if (res.status === 401) {
           localStorage.removeItem(TOKEN_KEY);
           showAuth();
-          throw new Error("登入已失效，請重新登入");
+          throw new Error("登入已失效,請重新登入");
         }
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -4735,7 +4773,7 @@
           throw new Error("此瀏覽器不支援串流回應");
         }
         if (typeof window.consumeBladeTurnSse !== "function") {
-          throw new Error("缺少 script.js（consumeBladeTurnSse）");
+          throw new Error("缺少 script.js(consumeBladeTurnSse)");
         }
         const reader = res.body.getReader();
         let liveBodyDiv = null;
@@ -4827,12 +4865,12 @@
       const password = document.getElementById("reg-pass").value;
       const player_name = document.getElementById("reg-name").value.trim();
       if (!username || !password || !player_name) {
-        authErr.textContent = "請填寫帳號、密碼與遊戲名號";
+        authErr.textContent = "請填寫帳號,密碼與遊戲名號";
         return;
       }
       const btnReg = document.getElementById("btn-register");
       btnReg.disabled = true;
-      regWaitHint.textContent = "正在編織萬界開局，請稍候…";
+      regWaitHint.textContent = "正在編織萬界開局,請稍候...";
       try {
         const res = await fetch(API_REGISTER, {
           method: "POST",
@@ -4861,7 +4899,7 @@
     });
 
     document.getElementById("btn-bingjie").addEventListener("click", async () => {
-      const ok = await showGameConfirm("兵解將使因果盡散，你確定要遁入輪迴嗎？");
+      const ok = await showGameConfirm("兵解將使因果盡散,你確定要遁入輪迴嗎?");
       if (!ok) return;
       errEl.textContent = "";
       setLoading(true);
