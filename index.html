@@ -2575,6 +2575,87 @@
   <script src="/script.js"></script>
   <script>
     const TOKEN_KEY = "blade_token";
+    /** 與帳號綁定的劇情／狀態快取（非兵解不清全庫） */
+    const LOCAL_GAME_CACHE_PREFIX = "blade_game_cache_v1:";
+
+    function localGameCacheKey(token) {
+      if (!token) return null;
+      let h = 2166136261;
+      for (let i = 0; i < token.length; i++) {
+        h ^= token.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return LOCAL_GAME_CACHE_PREFIX + (h >>> 0).toString(16);
+    }
+
+    function clearLocalGameCache(token) {
+      const k = token ? localGameCacheKey(token) : null;
+      if (k) {
+        try {
+          localStorage.removeItem(k);
+        } catch (_) { /* ignore */ }
+      }
+    }
+
+    /** 登出或 401：移除 token 與該帳劇情快取（兵解請用 localStorage.clear） */
+    function revokeLocalSession() {
+      const t = getToken();
+      clearLocalGameCache(t);
+      try {
+        localStorage["removeItem"](TOKEN_KEY);
+      } catch (_) { /* ignore */ }
+    }
+
+    function tryPersistLocalGameCache(gs, playerNameOpt) {
+      const tok = getToken();
+      if (!tok || !gs || typeof gs !== "object") return;
+      if (!Array.isArray(gs.messages) || gs.messages.length === 0) return;
+      if (!gs.stats || typeof gs.stats !== "object") return;
+      let pn = playerNameOpt != null ? String(playerNameOpt).trim() : "";
+      if (!pn && displayPlayerName) {
+        pn = (displayPlayerName.textContent || "").trim();
+        if (pn === "—") pn = "";
+      }
+      try {
+        const state = JSON.parse(JSON.stringify(gs));
+        if (Array.isArray(state.messages) && state.messages.length > 48) {
+          state.messages = state.messages.slice(-48);
+        }
+        const payload = {
+          v: 1,
+          savedAt: Date.now(),
+          player_name: pn,
+          game_state: state,
+        };
+        const key = localGameCacheKey(tok);
+        localStorage.setItem(key, JSON.stringify(payload));
+      } catch (e) {
+        try {
+          const state = JSON.parse(JSON.stringify(gs));
+          state.messages = Array.isArray(state.messages) ? state.messages.slice(-20) : [];
+          const payload = {
+            v: 1,
+            savedAt: Date.now(),
+            player_name: pn,
+            game_state: state,
+          };
+          localStorage.setItem(localGameCacheKey(tok), JSON.stringify(payload));
+        } catch (_) { /* quota or stringify */ }
+      }
+    }
+
+    function loadLocalGameCache(token) {
+      if (!token) return null;
+      try {
+        const raw = localStorage.getItem(localGameCacheKey(token));
+        if (!raw) return null;
+        const o = JSON.parse(raw);
+        if (!o || o.v !== 1 || !o.game_state || typeof o.game_state !== "object") return null;
+        return o;
+      } catch (_) {
+        return null;
+      }
+    }
     const API_TURN_STREAM = "/api/turn_stream";
     const API_UPDATE_GOD_MODE = "/api/update_god_mode";
     const API_ME = "/api/me";
@@ -2725,7 +2806,7 @@
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
-        localStorage.removeItem(TOKEN_KEY);
+        revokeLocalSession();
         closeModal("modal-inventory");
         showAuth();
         throw new Error("登入已失效,請重新登入");
@@ -2877,7 +2958,7 @@
         const res = await fetch(API_ME, { headers: authHeaders(false) });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           closeModal("modal-inventory");
           showAuth();
           return;
@@ -3158,7 +3239,7 @@
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401) {
-        localStorage.removeItem(TOKEN_KEY);
+        revokeLocalSession();
         closeModal("modal-martial");
         showAuth();
         throw new Error("登入已失效,請重新登入");
@@ -3362,7 +3443,7 @@
         const res = await fetch(API_ME, { headers: authHeaders(false) });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           closeModal("modal-martial");
           showAuth();
           return;
@@ -3613,7 +3694,7 @@
         const res = await fetch(API_ME, { headers: authHeaders(false) });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           closeModal("modal-companions");
           showAuth();
           return;
@@ -3713,7 +3794,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           closeModal("modal-quests");
           showAuth();
           errEl.textContent = "登入已失效,請重新登入";
@@ -3757,7 +3838,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           closeModal("modal-quests");
           showAuth();
           errEl.textContent = "登入已失效,請重新登入";
@@ -4562,7 +4643,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           closeModal(modalId);
           showAuth();
           errEl.textContent = "登入已失效,請重新登入";
@@ -4681,8 +4762,18 @@
       });
     }
 
+    function playerNameFromGameState(gs) {
+      if (!gs || typeof gs !== "object") return "";
+      try {
+        const id = gs.core_save && gs.core_save.identity;
+        if (id && id["名號"]) return String(id["名號"]).trim();
+      } catch (_) {}
+      return "";
+    }
+
     function applyGameState(gs, opts) {
       if (!gs) return;
+      opts = opts || {};
       currentGameState = gs;
       if (gs.stats && typeof gs.stats === "object") {
         stats = normalizeStatsFromServer(gs.stats);
@@ -4693,6 +4784,9 @@
       const mMount = document.getElementById("ma-modal-mount");
       if (mm && mMount && !mm.classList.contains("hidden") && !mMount.classList.contains("hidden")) {
         renderMartialModal(gs);
+      }
+      if (!opts.skipLocalPersist) {
+        tryPersistLocalGameCache(gs, playerNameFromGameState(gs));
       }
     }
 
@@ -4727,7 +4821,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           showAuth();
           throw new Error("登入已失效,請重新登入");
         }
@@ -4759,7 +4853,7 @@
           body: JSON.stringify({ choice: String(choice) }),
         });
         if (res.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           showAuth();
           throw new Error("登入已失效,請重新登入");
         }
@@ -4801,6 +4895,7 @@
             scheduleStoryScrollLockToEnd();
           }
         });
+        /* Auto-save: applyGameState 內會將 messages／stats／位面／行囊等寫入 localStorage */
         applyGameState(finalPayload.game_state, { animateLastAssistant: false });
         if (clearCustomOnSuccess) customInput.value = "";
       } catch (e) {
@@ -4910,7 +5005,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           showAuth();
           return;
         }
@@ -4920,6 +5015,9 @@
           errEl.textContent = msg;
           return;
         }
+        try {
+          localStorage.clear();
+        } catch (_) { /* ignore */ }
         window.location.reload();
       } catch (e) {
         errEl.textContent = String(e.message || e);
@@ -4932,7 +5030,7 @@
       try {
         await fetch(API_LOGOUT, { method: "POST", headers: authHeaders(false) });
       } catch (_) { /* ignore */ }
-      localStorage.removeItem(TOKEN_KEY);
+      revokeLocalSession();
       errEl.textContent = "";
       showAuth();
     });
@@ -4986,7 +5084,7 @@
         });
         const data = await res.json().catch(() => ({}));
         if (res.status === 401) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           closeModal("modal-rename");
           showAuth();
           return;
@@ -5034,7 +5132,7 @@
         },
         setLoading,
         onUnauthorized: () => {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           showAuth();
         },
       });
@@ -5046,11 +5144,17 @@
         showAuth();
         return;
       }
+      const cached = loadLocalGameCache(t);
+      if (cached && cached.game_state) {
+        if (cached.player_name) displayPlayerName.textContent = cached.player_name;
+        applyGameState(cached.game_state, { animateLastAssistant: false, skipLocalPersist: true });
+        showGame();
+      }
       try {
         const res = await fetch(API_ME, { headers: authHeaders(false) });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          localStorage.removeItem(TOKEN_KEY);
+          revokeLocalSession();
           showAuth();
           return;
         }
@@ -5058,8 +5162,10 @@
         applyGameState(data.game_state);
         showGame();
       } catch (_) {
-        localStorage.removeItem(TOKEN_KEY);
-        showAuth();
+        if (!cached || !cached.game_state) {
+          revokeLocalSession();
+          showAuth();
+        }
       }
     })();
   </script>

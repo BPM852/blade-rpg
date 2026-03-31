@@ -2164,7 +2164,8 @@ SYSTEM_PROMPT = """你是《刃界錄》的文字 RPG 敘事 GM。寫給**一般
 12. 不要重複貼上上一回合全文；不要解釋 JSON。"""
 
 # 回合 API：短期上下文條數與長期壓縮門檻
-MEMORY_SHORT_SEND = 5
+# 送入 Poe 的短期對話尾（user/assistant 交替時約為此數的一半「輪」）
+MEMORY_SHORT_SEND = 20
 MEMORY_COMPRESS_THRESHOLD = 15
 MEMORY_KEEP_AFTER_COMPRESS = 5
 UPDATE_STATE_TAG = "[UPDATE_STATE]"
